@@ -123,6 +123,9 @@ function setBtn(b,on,t='...'){if(!b)return;if(on){b._orig=b.innerHTML;b.innerHTM
    NOTE: seed.js is hard-gated to DB_ROOT==='demo' so it can never overwrite real
    data while this is ''. */
 const DB_ROOT = '';
+/* ════ OUTLIER GUARD (T2) ════ — single tunable threshold, never auto-rejects,
+   only requires an explicit confirmation before save. See computeOutlierFlag(). */
+const OUTLIER_FACTOR = 10;
 async function dbGet(path){if(!fbOk)return null;try{const s=await db.ref(DB_ROOT+'/'+path).once('value');return s.val();}catch(e){console.error('dbGet:',path,e.message);return null;}}
 async function dbUpdate(obj){if(!fbOk)return;try{const prefixed={};for(const k in obj){prefixed[DB_ROOT+'/'+k]=obj[k];}await db.ref().update(prefixed);}catch(e){console.error('dbUpdate:',e.message);throw e;}}
 async function dbRemove(path){if(!fbOk)return;try{await db.ref(DB_ROOT+'/'+path).remove();}catch(e){throw e;}}
@@ -262,6 +265,67 @@ function monthTotalCost(){
     return sum + (entry ? (estCostOf(item.code, entry) || 0) : 0);
   }, 0);
 }
+
+/* ═══════════════════════════════════════════════════
+   OUTLIER GUARD (T2) — visibility only, never auto-rejects.
+   Two ratios: (a) qty vs. this store's own prior month (totalBaseQty — cross-UOM
+   safe), symmetric (larger/smaller), catches both a spike and a collapse in the
+   same store+item history; (b) this line's est. value vs. the network median for
+   that item this month (one-directional — only overstatement vs. peers is the
+   known failure mode). A missing median is recorded, not silently treated as a pass.
+   ═══════════════════════════════════════════════════ */
+let PRIOR_MONTH_BASE = {}; // code -> totalBaseQty from this store's prior month
+let ITEM_MEDIAN = {};      // code -> network median est. value for ENTRY_YM (stats/{ym}/itemMedian)
+
+function prevYM(ym){
+  const [y,m] = ym.split('-').map(Number);
+  const d = new Date(y, m-2, 1); // Date month is 0-indexed; m-2 lands on the prior month
+  return `${d.getFullYear()}-${p2(d.getMonth()+1)}`;
+}
+
+/* โหลด baseline สำหรับ outlier check — เรียกครั้งเดียวตอนเปิด/เปลี่ยนเดือนของหน้าบันทึก
+   เก็บ prior base ไว้เฉพาะแถวที่มี pack_size จริง — ถ้าไม่มี totalBaseQty() จะ fallback ไปใช้ qty ดิบ
+   ซึ่งเป็นหน่วยคนละแบบกับเดือนที่มี pack_size เทียบกันไม่ได้ (เช่นเดียวกับปัญหา "หน่วยไม่ระบุ" เดิม
+   ที่ต้องไม่เดาหน่วย — ที่นี่คือต้องไม่เดาว่าตัวเลขสองเดือนเทียบกันได้) */
+async function loadOutlierContext(ym){
+  const prevData = await dbGet(`entries/${SES.no}/${prevYM(ym)}`) || {};
+  PRIOR_MONTH_BASE = {};
+  for(const code in prevData){
+    const n = normalizeEntry(prevData[code]);
+    if(n && isFilled(n) && n.pack_size!=null) PRIOR_MONTH_BASE[code] = totalBaseQty(n);
+  }
+  ITEM_MEDIAN = await dbGet(`stats/${ym}/itemMedian`) || {};
+}
+
+/* core ratio calc — ไม่ผูกกับ global ใดๆ เพื่อให้ admin-side (ข้ามทุกสาขา) เรียกซ้ำได้ */
+function evalOutlier(curBase, curValue, priorBase, median){
+  let qtyRatio = null, valueRatio = null;
+  const medianUnavailable = !(median != null && median > 0);
+  if(priorBase != null && priorBase > 0 && curBase > 0){
+    qtyRatio = curBase >= priorBase ? curBase/priorBase : priorBase/curBase;
+  }
+  if(!medianUnavailable && curValue != null && curValue > 0){
+    valueRatio = curValue / median;
+  }
+  const flagged = (qtyRatio!=null && qtyRatio>=OUTLIER_FACTOR) || (valueRatio!=null && valueRatio>=OUTLIER_FACTOR);
+  return { flagged, qtyRatio, valueRatio, medianUnavailable };
+}
+
+/* store-side wrapper — อ่านจาก PRIOR_MONTH_BASE/ITEM_MEDIAN ที่โหลดไว้สำหรับสาขา+เดือนนี้ */
+function computeOutlierFlag(code, entry){
+  if(!isFilled(entry)) return null;
+  // totalBaseQty() falls back to raw qty when pack_size is missing — that fallback is a
+  // different unit basis than a real base-qty total, so it must never feed the qty ratio.
+  const curBase = entry.pack_size!=null ? totalBaseQty(entry) : null;
+  const r = evalOutlier(curBase, estCostOf(code, entry), PRIOR_MONTH_BASE[code], ITEM_MEDIAN[code]);
+  if(!r.flagged) return null;
+  const parts = [];
+  if(r.qtyRatio!=null && r.qtyRatio>=OUTLIER_FACTOR) parts.push(`จำนวนต่างจากเดือนก่อน ${r.qtyRatio.toFixed(1)} เท่า`);
+  if(r.valueRatio!=null && r.valueRatio>=OUTLIER_FACTOR) parts.push(`มูลค่าสูงกว่าค่ากลางทั้งเครือ ${r.valueRatio.toFixed(1)} เท่า`);
+  if(r.medianUnavailable) parts.push('(ยังไม่มีค่ากลางทั้งเครือสำหรับเดือนนี้)');
+  return { code, qtyRatio:r.qtyRatio, valueRatio:r.valueRatio, medianUnavailable:r.medianUnavailable, reason: parts.join(' · ') };
+}
+
 /* store cost reference band panel — total vs. historical min/avg/max, out-of-range flag.
    Missing REFERENCE_BAND[storeNo] is the normal case today, not an edge case: never
    fabricate a band, never fall back to another store, never compare against 0. */
@@ -271,6 +335,7 @@ function refBandInnerHtml(){
     <div class="ref-band-total">
       <div class="ref-band-total-lbl">มูลค่ารวมที่นับได้</div>
       <div class="ref-band-total-val">฿${fNum(total,2)}</div>
+      <div style="font-size:10px;color:var(--txt4);margin-top:2px">ต้นทุนประมาณการ — ไม่ใช่มูลค่าอย่างเป็นทางการ</div>
     </div>`;
 
   const band = REFERENCE_BAND[String(SES.no)];
@@ -961,6 +1026,7 @@ async function loadEntryForMonth(ym, editableMonths, mc, C){
   ENTRY_YM = ym;
   const isActive = mc[ym] && mc[ym].active === true;
   const data = await dbGet(`entries/${SES.no}/${ym}`) || {};
+  await loadOutlierContext(ym); // T2: baseline สำหรับ outlier check ของเดือนนี้
   // normalize current month into working objects (§3)
   ENTRY_DATA = {};
   for(const code in data){ const n=normalizeEntry(data[code]); if(n) ENTRY_DATA[code]=n; }
@@ -1252,9 +1318,58 @@ async function confirmClear(){
   await doSaveEntry(); // erase takes effect immediately — reuses the normal save path (month-active recheck, retry, offline guard), no separate save click required
 }
 
-async function doSaveEntry(){
+/* T2: รายการที่ค้าง confirm อยู่ — stash ไว้ให้ confirmOutliersAndSave() อ่านต่อ */
+let PENDING_OUTLIER_FLAGS = null;
+
+function showOutlierConfirmModal(flagged){
+  const rows = flagged.map(f=>{
+    const it = ITEMS_DATA.find(i=>i.code===f.code);
+    return `<tr>
+      <td class="code-cell">${esc(f.code)}</td>
+      <td>${esc(it?it.name:'')}</td>
+      <td style="font-size:12px">${esc(f.reason)}</td>
+    </tr>`;
+  }).join('');
+  showModal(`
+    <h3 style="color:var(--warn)">⚠️ พบรายการที่มีค่าผิดปกติ (${flagged.length} รายการ)</h3>
+    <p style="color:var(--txt2);margin-top:8px;font-size:13px">รายการด้านล่างมีจำนวนหรือมูลค่าต่างจากปกติมาก — กรุณาตรวจสอบว่ากรอกถูกต้องก่อนยืนยัน (ระบบไม่ปิดกั้นการบันทึก แค่ต้องการให้ตรวจสอบก่อน)</p>
+    <div class="tbl-wrap" style="max-height:280px;margin-top:10px">
+      <table class="dtbl"><thead><tr><th style="width:88px">รหัส</th><th>ชื่อสินค้า</th><th>ผิดปกติ</th></tr></thead><tbody>${rows}</tbody></table>
+    </div>
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:13px;color:var(--txt2);cursor:pointer">
+      <input type="checkbox" id="outlierConfirmChk" style="margin-top:2px">
+      <span>ฉันตรวจสอบแล้วว่าจำนวน/มูลค่าที่กรอกถูกต้อง</span>
+    </label>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" id="outlierConfirmBtn" onclick="confirmOutliersAndSave()" disabled>ยืนยันและบันทึก</button>
+    </div>`, (root)=>{
+    const chk = root.querySelector('#outlierConfirmChk');
+    const btn2 = root.querySelector('#outlierConfirmBtn');
+    chk.addEventListener('change', ()=>{ btn2.disabled = !chk.checked; });
+  });
+  PENDING_OUTLIER_FLAGS = flagged;
+}
+
+async function confirmOutliersAndSave(){
+  const flagged = PENDING_OUTLIER_FLAGS || [];
+  PENDING_OUTLIER_FLAGS = null;
+  closeModal();
+  await doSaveEntry(flagged);
+}
+
+async function doSaveEntry(confirmedFlags){
   if(_saveInProgress){ toast('กำลังบันทึกอยู่ กรุณารอสักครู่...','err'); return; }
   if(!FB_ONLINE){ toast('❌ ขาดการเชื่อมต่อ Firebase — กรุณาตรวจสอบเครือข่าย','err'); return; }
+
+  /* ── T2: outlier check — เฉพาะการเรียกครั้งแรก (ยังไม่ confirm) ── */
+  if(!confirmedFlags){
+    const flagged = ITEMS_DATA.map(i => computeOutlierFlag(i.code, ENTRY_DATA[i.code])).filter(Boolean);
+    if(flagged.length){ showOutlierConfirmModal(flagged); return; }
+  }
+  const flagMap = {};
+  (confirmedFlags||[]).forEach(f => flagMap[f.code] = f);
+
   _saveInProgress = true;
   const btn=document.getElementById('saveBtn');setBtn(btn,true,'💾 กำลังบันทึก...');
   // ตรวจสอบ active อีกครั้งก่อน save
@@ -1270,7 +1385,7 @@ async function doSaveEntry(){
     const path=`entries/${SES.no}/${ENTRY_YM}/${i.code}`;
     if(!isFilled(e)){ upd[path]=null; return; }
     const lockedPack = (!e.legacy) ? masterPackSizeOf(i.code) : null;
-    upd[path]={
+    const rec = {
       qty: Number(e.qty)||0,
       uom: (!e.legacy && masterUomOf(i.code)) || e.uom || null, // master-locked rows always save the master uom
       pack_size: (lockedPack!=null) ? lockedPack : ((e.pack_size!==''&&e.pack_size!=null) ? Number(e.pack_size) : null),
@@ -1278,6 +1393,13 @@ async function doSaveEntry(){
       sub_uom: (!e.legacy && masterSubUomOf(i.code)) || null,   // denormalized from master, same pattern as uom
       counted_at: e.counted_at || Date.now()
     };
+    const flag = flagMap[i.code];
+    if(flag){
+      rec.confirmedBy = SES.name || ('สาขา '+SES.no);
+      rec.confirmedAt = Date.now();
+      rec.flagReason = flag.reason;
+    }
+    upd[path]=rec;
   });
 
   let retries=0;
@@ -1286,7 +1408,7 @@ async function doSaveEntry(){
     try{
       await dbUpdate(upd);
       /* ── Log บันทึกแยกต่างหากด้วย push() → unique key ป้องกัน collision ── */
-      await dbPush('logs',{no:SES.no,name:SES.name,ym:ENTRY_YM,ts:Date.now(),action:'save'});
+      await dbPush('logs',{no:SES.no,name:SES.name,ym:ENTRY_YM,ts:Date.now(),action:'save',source:'ui',outlierConfirmed:(confirmedFlags||[]).length});
       DIRTY=false;
       const db2=document.getElementById('dirtyBadge');if(db2)db2.className='dirty-badge';
       toast('บันทึกสำเร็จ ✅','ok');
@@ -1447,9 +1569,96 @@ async function renderAdminDashboard(C){
   await renderAdminDashboardForYM(C, mc, DASH_YM);
 }
 
+/* ═══ Admin exception queue (T2) — คำนวณจาก allE ที่ผู้เรียกโหลดมาแล้ว ไม่ยิง request เพิ่ม
+   เขียน stats/{ym}/itemMedian ทุกครั้งที่เปิดการ์ดนี้ — ใช้เป็น baseline (b) ที่หน้าบันทึกของสาขาอ่านไปใช้ ═══ */
+async function computeAndPersistOutlierExceptions(allE, selYM){
+  const prevYm = prevYM(selYM);
+  // pass 1: median ต่อรหัสสินค้า จากทุกสาขาที่กรอกไว้ในเดือนนี้
+  const valuesByCode = {};
+  Object.keys(allE).forEach(sNo=>{
+    const mData = (allE[sNo]||{})[selYM] || {};
+    ITEMS_DATA.forEach(item=>{
+      const entry = normalizeEntry(mData[item.code]);
+      if(entry && isFilled(entry)){
+        const v = estCostOf(item.code, entry);
+        if(v!=null) (valuesByCode[item.code] = valuesByCode[item.code]||[]).push(v);
+      }
+    });
+  });
+  const medianMap = {};
+  Object.keys(valuesByCode).forEach(code=>{
+    const arr = valuesByCode[code].slice().sort((a,b)=>a-b);
+    const mid = Math.floor(arr.length/2);
+    medianMap[code] = arr.length%2 ? arr[mid] : (arr[mid-1]+arr[mid])/2;
+  });
+  dbSet(`stats/${selYM}/itemMedian`, medianMap).catch(e=>console.warn('[outlier] persist median failed:', e.message));
+  dbSet(`stats/${selYM}/computedAt`, Date.now()).catch(()=>{});
+
+  // pass 2: flag ทุกบรรทัดของทุกสาขา เทียบ median ที่เพิ่งคำนวณ + เดือนก่อนของสาขานั้นๆ
+  const exceptions = [];
+  Object.keys(allE).forEach(sNo=>{
+    const mData = (allE[sNo]||{})[selYM] || {};
+    const prevData = (allE[sNo]||{})[prevYm] || {};
+    ITEMS_DATA.forEach(item=>{
+      const raw = mData[item.code];
+      const entry = normalizeEntry(raw);
+      if(!entry || !isFilled(entry)) return;
+      const prevEntry = normalizeEntry(prevData[item.code]);
+      // totalBaseQty() falls back to raw qty when pack_size is missing — never let that
+      // fallback feed the qty ratio against a real base-qty total from the other month.
+      const priorBase = (prevEntry && isFilled(prevEntry) && prevEntry.pack_size!=null) ? totalBaseQty(prevEntry) : null;
+      const curBase = entry.pack_size!=null ? totalBaseQty(entry) : null;
+      const curValue = estCostOf(item.code, entry);
+      const r = evalOutlier(curBase, curValue, priorBase, medianMap[item.code]);
+      if(!r.flagged) return;
+      const s = STORES.find(st=>String(st.n)===String(sNo));
+      exceptions.push({
+        storeNo: sNo, storeName: s?s.name:sNo, code:item.code, itemName:item.name,
+        qty: entry.qty, value: curValue, qtyRatio: r.qtyRatio, valueRatio: r.valueRatio,
+        ratio: Math.max(r.qtyRatio||0, r.valueRatio||0),
+        confirmedBy: (raw && typeof raw==='object') ? (raw.confirmedBy||null) : null
+      });
+    });
+  });
+  exceptions.sort((a,b)=>b.ratio-a.ratio);
+  return exceptions.slice(0,20);
+}
+
+function exceptionQueueCardHtml(exceptions, selYM){
+  if(!exceptions.length){
+    return `<div class="card" style="margin-bottom:14px">
+      <div class="card-head"><div class="card-title">🚩 รายการที่ต้องตรวจสอบ — ${ymToFull(selYM)}</div></div>
+      <div class="tc" style="padding:20px;color:var(--txt3);font-size:13px">✅ ไม่พบรายการผิดปกติในเดือนนี้</div>
+    </div>`;
+  }
+  const rows = exceptions.map(e=>`
+    <tr>
+      <td class="code-cell">${e.storeNo} — ${esc(e.storeName)}</td>
+      <td class="code-cell">${esc(e.code)}</td>
+      <td style="max-width:220px;white-space:normal">${esc(e.itemName)}</td>
+      <td class="tr num">${fNum(e.qty,2)}</td>
+      <td class="tr num">${fNum(e.value,2)}</td>
+      <td class="tr num" style="color:var(--red);font-weight:700">${e.ratio.toFixed(1)}x</td>
+      <td>${e.confirmedBy?esc(e.confirmedBy):'<span style="color:var(--txt4)">—</span>'}</td>
+    </tr>`).join('');
+  return `<div class="card" style="margin-bottom:14px;border:1px solid rgba(224,50,68,.3)">
+    <div class="card-head">
+      <div class="card-title" style="color:var(--red)">🚩 รายการที่ต้องตรวจสอบ — ${ymToFull(selYM)}</div>
+      <div class="sub">Top ${exceptions.length} จากอัตราส่วนผิดปกติ (เกณฑ์ ${OUTLIER_FACTOR} เท่า) — ไม่ปิดกั้นการบันทึก แสดงเพื่อให้ตรวจสอบ</div>
+    </div>
+    <div class="tbl-wrap" style="max-height:360px">
+      <table class="dtbl">
+        <thead><tr><th>สาขา</th><th>รหัส</th><th>ชื่อสินค้า</th><th class="tr">จำนวน</th><th class="tr">ต้นทุนประมาณการ</th><th class="tr">อัตราส่วน</th><th>ยืนยันโดย</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
 async function renderAdminDashboardForYM(C, mc, selYM){
   const curYM = currentYM();
   const allE = await dbGet('entries') || {};
+  const exceptions = await computeAndPersistOutlierExceptions(allE, selYM);
   const months = generateMonthList();
   const activeCount = months.filter(ym=>mc[ym]&&mc[ym].active===true).length;
   const selActive = mc[selYM] && mc[selYM].active === true;
@@ -1649,6 +1858,8 @@ async function renderAdminDashboardForYM(C, mc, selYM){
     </div>
 
     ${classChartHTML}
+
+    ${exceptionQueueCardHtml(exceptions, selYM)}
 
     <div class="card">
       <div class="card-head" style="flex-wrap:wrap;gap:8px">
