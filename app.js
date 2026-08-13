@@ -59,7 +59,7 @@ async function loadData() {
     const res = await fetch('data.json');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const json = await res.json();
-    STORES     = json.stores || [];
+    STORES     = (json.stores || []).map(normalizeStore);
     ADMIN      = json.admin  || {};
     /* โหลด item-master UOM — ต้องโหลดก่อน เพราะใช้กรอง ITEMS_DATA ด้านล่าง */
     try {
@@ -108,6 +108,30 @@ function todayStr(){const d=new Date();return`${d.getFullYear()}-${p2(d.getMonth
 function currentYM(){const d=new Date();return`${d.getFullYear()}-${p2(d.getMonth()+1)}`;}
 function ymToThai(ym){if(!ym)return'-';const[y,m]=ym.split('-');const months=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];return`${months[parseInt(m)]} ${parseInt(y)+543}`;}
 function ymToFull(ym){if(!ym)return'-';const[y,m]=ym.split('-');const months=['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];return`${months[parseInt(m)]} ${parseInt(y)+543}`;}
+
+/* ════ LOCATION STATUS (T4) ════
+   locationType: STORE | FC | DC | DUMMY | VIRTUAL | FROZEN (bakery today: always STORE — no
+   warehouse/dummy codes in the 164 production locations, field exists for shape parity with
+   packaging). status is a display-only label; effectiveFrom/effectiveTo (both inclusive, both
+   nullable = open-ended in that direction) are what isCountableAt() actually evaluates, so
+   closing a store today never rewrites a past month's completion numbers. */
+function normalizeStore(s){
+  return {
+    ...s,
+    locationType: s.locationType || 'STORE',
+    status: s.status || 'OPEN',
+    effectiveFrom: s.effectiveFrom || null,
+    effectiveTo: s.effectiveTo || null,
+    statusNote: s.statusNote || ''
+  };
+}
+function isCountableAt(loc, ym){
+  if(!loc) return false;
+  if((loc.locationType || 'STORE') !== 'STORE') return false;
+  if(loc.effectiveFrom && ym < loc.effectiveFrom) return false;
+  if(loc.effectiveTo && ym > loc.effectiveTo) return false;
+  return true;
+}
 function fNum(n,dec=0){return(Number(n)||0).toLocaleString('th-TH',{minimumFractionDigits:dec,maximumFractionDigits:dec});}
 function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function hlText(t,q){if(!q)return t;try{return t.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark class="hl">$1</mark>');}catch(e){return t;}}
@@ -1662,11 +1686,14 @@ async function renderAdminDashboardForYM(C, mc, selYM){
   const months = generateMonthList();
   const activeCount = months.filter(ym=>mc[ym]&&mc[ym].active===true).length;
   const selActive = mc[selYM] && mc[selYM].active === true;
-  const totalStoresAll = STORES.length;
+  const countableStores = STORES.filter(s=>isCountableAt(s, selYM));
+  const totalStoresAll = countableStores.length;
 
+  const countableNos = new Set(countableStores.map(s=>String(s.n)));
   let selStores=0, selItems=0, selCost=0;
   const sentStoreNos = new Set();
   Object.keys(allE).forEach(sNo=>{
+    if(!countableNos.has(String(sNo))) return; // ไม่นับสาขาที่ปิดแล้ว ณ เดือนที่เลือก แม้จะมีข้อมูลเก่าค้างอยู่
     const mData=(allE[sNo]||{})[selYM]||{};
     let f=0, costSum=0;
     ITEMS_DATA.forEach(item=>{
@@ -1680,8 +1707,8 @@ async function renderAdminDashboardForYM(C, mc, selYM){
     if(f>0){ selStores++; selItems+=f; selCost+=costSum; sentStoreNos.add(String(sNo)); }
   });
   const sentPct=totalStoresAll>0?Math.round(selStores/totalStoresAll*100):0;
-  const sentList = STORES.filter(s=>sentStoreNos.has(String(s.n)));
-  const notSentList = STORES.filter(s=>!sentStoreNos.has(String(s.n)));
+  const sentList = countableStores.filter(s=>sentStoreNos.has(String(s.n)));
+  const notSentList = countableStores.filter(s=>!sentStoreNos.has(String(s.n)));
 
   const pastMonths   = months.filter(ym=>ym < curYM).reverse();
   const futureMonths = months.filter(ym=>ym > curYM);
@@ -1918,17 +1945,18 @@ async function exportStoreStatusExcel(selYM){
   Object.values(logs).forEach(l=>{ if(l&&l.no&&l.ym===selYM){ if(!lastSaveMap[l.no]||l.ts>lastSaveMap[l.no]) lastSaveMap[l.no]=l.ts; } });
   const sentNos = new Set();
   Object.keys(allE).forEach(sNo=>{ const mData=(allE[sNo]||{})[selYM]||{}; if(Object.keys(mData).filter(k=>mData[k]!==null&&mData[k]!=='').length>0) sentNos.add(String(sNo)); });
+  const countableStores = STORES.filter(s=>isCountableAt(s, selYM));
   const wb = XLSX.utils.book_new();
   const notR=[['ลำดับ','เลขสาขา','ชื่อสาขา','Username','สถานะ']];
-  STORES.filter(s=>!sentNos.has(String(s.n))).forEach((s,i)=>notR.push([i+1,s.n,s.name,s.u,'ยังไม่บันทึก']));
+  countableStores.filter(s=>!sentNos.has(String(s.n))).forEach((s,i)=>notR.push([i+1,s.n,s.name,s.u,'ยังไม่บันทึก']));
   const ws1=XLSX.utils.aoa_to_sheet(notR); ws1['!cols']=[{wch:6},{wch:10},{wch:32},{wch:14},{wch:14}];
   XLSX.utils.book_append_sheet(wb,ws1,'ยังไม่บันทึก');
   const sentR=[['ลำดับ','เลขสาขา','ชื่อสาขา','Username','บันทึกล่าสุด','สถานะ']];
-  STORES.filter(s=>sentNos.has(String(s.n))).forEach((s,i)=>sentR.push([i+1,s.n,s.name,s.u,lastSaveMap[String(s.n)]?formatThaiDT(lastSaveMap[String(s.n)]):'—','บันทึกแล้ว']));
+  countableStores.filter(s=>sentNos.has(String(s.n))).forEach((s,i)=>sentR.push([i+1,s.n,s.name,s.u,lastSaveMap[String(s.n)]?formatThaiDT(lastSaveMap[String(s.n)]):'—','บันทึกแล้ว']));
   const ws2=XLSX.utils.aoa_to_sheet(sentR); ws2['!cols']=[{wch:6},{wch:10},{wch:32},{wch:14},{wch:20},{wch:12}];
   XLSX.utils.book_append_sheet(wb,ws2,'บันทึกแล้ว');
   const allR=[['ลำดับ','เลขสาขา','ชื่อสาขา','Username','สถานะ','บันทึกล่าสุด']];
-  STORES.forEach((s,i)=>{ const sent=sentNos.has(String(s.n)); allR.push([i+1,s.n,s.name,s.u,sent?'บันทึกแล้ว':'ยังไม่บันทึก',sent&&lastSaveMap[String(s.n)]?formatThaiDT(lastSaveMap[String(s.n)]):'—']); });
+  countableStores.forEach((s,i)=>{ const sent=sentNos.has(String(s.n)); allR.push([i+1,s.n,s.name,s.u,sent?'บันทึกแล้ว':'ยังไม่บันทึก',sent&&lastSaveMap[String(s.n)]?formatThaiDT(lastSaveMap[String(s.n)]):'—']); });
   const ws3=XLSX.utils.aoa_to_sheet(allR); ws3['!cols']=[{wch:6},{wch:10},{wch:32},{wch:14},{wch:14},{wch:20}];
   XLSX.utils.book_append_sheet(wb,ws3,'ทั้งหมด');
   XLSX.writeFile(wb,`StoreStatus_${selYM}_Bakery.xlsx`);
@@ -2247,7 +2275,7 @@ async function loadMasterDataFromFB() {
         console.log('[FB masterData] items overridden:', ITEMS_DATA.length);
       }
       if (md.stores && Array.isArray(md.stores) && md.stores.length > 0) {
-        STORES = md.stores;
+        STORES = md.stores.map(normalizeStore);
         console.log('[FB masterData] stores overridden:', STORES.length);
       }
     }
@@ -2539,11 +2567,11 @@ function buildManageStoresView(C) {
   const rows = filtered.map((s) => `
     <tr>
       <td class="bold num">${s.n}</td>
-      <td>${esc(s.name)}</td>
+      <td>${esc(s.name)} <span style="font-size:11px">${STORE_STATUS_LABEL[s.status] || STORE_STATUS_LABEL.OPEN}</span>${s.effectiveTo ? `<div style="font-size:10.5px;color:var(--txt3)">ถึงเดือน ${esc(s.effectiveTo)}</div>` : ''}</td>
       <td class="code-cell">${esc(s.u)}</td>
       <td class="tr" style="white-space:nowrap">
         <button class="btn btn-secondary btn-xs" onclick="showEditStoreModal('${s.n}')">✏️ แก้ไข</button>
-        <button class="btn btn-xs" style="background:var(--red-bg);color:var(--red);border:1px solid rgba(224,50,68,.2);cursor:pointer;padding:3px 8px;border-radius:var(--r8);font-size:11px;font-weight:600" onclick="confirmDeleteStore('${s.n}')">🗑️ ลบ</button>
+        <button class="btn btn-xs" style="background:var(--surface3);color:var(--txt2);border:1px solid var(--border);cursor:pointer;padding:3px 8px;border-radius:var(--r8);font-size:11px;font-weight:600" onclick="showChangeStoreStatusModal('${s.n}')">🔄 สถานะ</button>
       </td>
     </tr>`).join('');
 
@@ -2647,7 +2675,7 @@ async function doAddStore() {
   if (!n || !name || !u || !p) { toast('กรุณากรอกข้อมูลให้ครบถ้วน', 'err'); return; }
   if (STORES.find(s => String(s.n) === String(n))) { toast('เลขสาขา ' + n + ' มีอยู่แล้ว', 'err'); return; }
   if (STORES.find(s => s.u === u)) { toast('Username "' + u + '" มีอยู่แล้ว', 'err'); return; }
-  const newStore = { n, name, u, p };
+  const newStore = normalizeStore({ n, name, u, p });
   const newStores = [...STORES, newStore].sort((a, b) => Number(a.n) - Number(b.n));
   closeModal();
   await saveMasterStores(newStores, `เพิ่มสาขา ${n} ${name} แล้ว ✅`);
@@ -2691,25 +2719,93 @@ async function doEditStore(storeN) {
   await saveMasterStores(newStores, `แก้ไขสาขา ${storeN} แล้ว ✅`);
 }
 
-function confirmDeleteStore(storeN) {
+const STORE_STATUS_LABEL = { OPEN:'🟢 เปิด', TEMP_CLOSED:'🟡 ปิดชั่วคราว', CLOSED:'🔴 ปิดถาวร' };
+
+function showChangeStoreStatusModal(storeN) {
   const s = STORES.find(st => String(st.n) === String(storeN));
+  if (!s) return;
+  const ym = currentYM();
   showModal(`
-    <h3 style="color:var(--red)">🗑️ ยืนยันการลบสาขา</h3>
-    <p style="color:var(--txt2);margin-top:10px">
-      ต้องการลบสาขา <b>${s.n} — ${esc(s.name)}</b> ใช่หรือไม่?<br>
-      <span style="color:var(--txt3);font-size:12px">⚠️ ข้อมูลการบันทึกของสาขานี้ใน Firebase จะยังคงอยู่</span>
-    </p>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
-      <button class="btn btn-danger" onclick="doDeleteStore('${storeN}')">🗑️ ลบสาขา</button>
+    <h3>🔄 เปลี่ยนสถานะสาขา ${s.n} — ${esc(s.name)}</h3>
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label class="flabel">สถานะ</label>
+        <select class="ctrl w100" id="cs_status">
+          <option value="OPEN" ${s.status==='OPEN'?'selected':''}>🟢 เปิด — บันทึกได้ตามปกติ</option>
+          <option value="TEMP_CLOSED" ${s.status==='TEMP_CLOSED'?'selected':''}>🟡 ปิดชั่วคราว</option>
+          <option value="CLOSED" ${s.status==='CLOSED'?'selected':''}>🔴 ปิดถาวร</option>
+        </select>
+      </div>
+      <div>
+        <label class="flabel">มีผลตั้งแต่เดือน (สำหรับสถานะปิด — เดือนสุดท้ายที่จะยังนับได้คือเดือนก่อนหน้า)</label>
+        <input type="month" class="ctrl w100" id="cs_effmonth" value="${esc(ym)}">
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">
+          ไม่กระทบตัวเลขของเดือนที่ผ่านมาแล้ว — ใช้เมื่อเปลี่ยนเป็น "เปิด" อีกครั้งด้วย (เดือนแรกที่กลับมานับได้)
+        </div>
+      </div>
+      <div>
+        <label class="flabel">หมายเหตุ</label>
+        <textarea class="ctrl w100" id="cs_note" rows="2" placeholder="เหตุผล เช่น ปิดปรับปรุง, ปิดสาขาถาวร">${esc(s.statusNote || '')}</textarea>
+      </div>
+    </div>
+    <div class="modal-actions" style="justify-content:space-between">
+      <button class="btn btn-danger" id="cs_harddelete" onclick="attemptHardDeleteStore('${storeN}')" style="font-size:12px">🗑️ ลบถาวร (เฉพาะสาขาที่ไม่มีประวัติการบันทึก)</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+        <button class="btn btn-blue" onclick="doChangeStoreStatus('${storeN}')">💾 บันทึกสถานะ</button>
+      </div>
     </div>`);
 }
 
-async function doDeleteStore(storeN) {
+async function doChangeStoreStatus(storeN) {
+  const status = document.getElementById('cs_status').value;
+  const effMonth = document.getElementById('cs_effmonth').value;
+  const note = document.getElementById('cs_note').value.trim();
+  if ((status === 'TEMP_CLOSED' || status === 'CLOSED') && !effMonth) {
+    toast('กรุณาระบุเดือนที่มีผล', 'err'); return;
+  }
+  const newStores = STORES.map(s => {
+    if (String(s.n) !== String(storeN)) return s;
+    if (status === 'OPEN') {
+      // กลับมาเปิด — เดือนที่เลือกคือเดือนแรกที่นับได้อีกครั้ง, ล้าง effectiveTo เดิม
+      return { ...s, status, effectiveFrom: effMonth || s.effectiveFrom, effectiveTo: null, statusNote: note };
+    }
+    // ปิด (ชั่วคราว/ถาวร) — เดือนสุดท้ายที่นับได้คือเดือนก่อนเดือนที่มีผล
+    const [y, m] = effMonth.split('-').map(Number);
+    const prevM = m === 1 ? 12 : m - 1;
+    const prevY = m === 1 ? y - 1 : y;
+    const effectiveTo = `${prevY}-${String(prevM).padStart(2,'0')}`;
+    return { ...s, status, effectiveTo, statusNote: note };
+  });
+  closeModal();
+  await saveMasterStores(newStores, `เปลี่ยนสถานะสาขา ${storeN} แล้ว ✅`);
+}
+
+async function attemptHardDeleteStore(storeN) {
+  const s = STORES.find(st => String(st.n) === String(storeN));
+  if (!s) return;
+  const hist = await dbGet('entries/' + storeN);
+  if (hist && Object.keys(hist).length > 0) {
+    toast('สาขานี้มีประวัติการบันทึกใน Firebase อยู่ — ลบถาวรไม่ได้ กรุณาเปลี่ยนสถานะเป็น "ปิด" แทน', 'err');
+    return;
+  }
+  showModal(`
+    <h3 style="color:var(--red)">🗑️ ยืนยันการลบสาขาถาวร</h3>
+    <p style="color:var(--txt2);margin-top:10px">
+      สาขา <b>${s.n} — ${esc(s.name)}</b> ไม่มีประวัติการบันทึกใน Firebase — ลบถาวรได้<br>
+      <span style="color:var(--red);font-size:12px">⚠️ การลบนี้ย้อนกลับไม่ได้</span>
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="showChangeStoreStatusModal('${storeN}')">ยกเลิก</button>
+      <button class="btn btn-danger" onclick="doHardDeleteStore('${storeN}')">🗑️ ลบถาวร</button>
+    </div>`);
+}
+
+async function doHardDeleteStore(storeN) {
   const s = STORES.find(st => String(st.n) === String(storeN));
   const newStores = STORES.filter(st => String(st.n) !== String(storeN));
   closeModal();
-  await saveMasterStores(newStores, `ลบสาขา ${storeN} ${s ? s.name : ''} แล้ว`);
+  await saveMasterStores(newStores, `ลบสาขา ${storeN} ${s ? s.name : ''} แล้ว (ไม่มีประวัติการบันทึก)`);
 }
 
 async function saveMasterStores(newStores, successMsg) {
@@ -2744,13 +2840,14 @@ async function renderStoreStatusForYM(C, mc, selYM){
   const allE = await dbGet('entries') || {};
   const months = generateMonthList();
 
+  const countableStores = STORES.filter(s=>isCountableAt(s, selYM));
   const sentStoreNos = new Set();
   Object.keys(allE).forEach(sNo=>{
     const mData=(allE[sNo]||{})[selYM]||{};
     if(Object.keys(mData).filter(k=>mData[k]!==null&&mData[k]!=='').length>0) sentStoreNos.add(String(sNo));
   });
-  const sentList    = STORES.filter(s=>sentStoreNos.has(String(s.n)));
-  const notSentList = STORES.filter(s=>!sentStoreNos.has(String(s.n)));
+  const sentList    = countableStores.filter(s=>sentStoreNos.has(String(s.n)));
+  const notSentList = countableStores.filter(s=>!sentStoreNos.has(String(s.n)));
 
   const logs = await dbGet('logs') || {};
   const lastSaveMap = {};
@@ -2767,7 +2864,7 @@ async function renderStoreStatusForYM(C, mc, selYM){
     <optgroup label="↩️ ย้อนหลัง (${pastMonths.length})">${pastMonths.map(makeOpt).join('')}</optgroup>
     <optgroup label="🔮 อนาคต (${futureMonths.length})">${futureMonths.map(makeOpt).join('')}</optgroup>`;
 
-  const sentPct = STORES.length>0 ? Math.round(sentList.length/STORES.length*100) : 0;
+  const sentPct = countableStores.length>0 ? Math.round(sentList.length/countableStores.length*100) : 0;
 
   C.innerHTML=`
     <div class="card" style="margin-bottom:14px;border-left:4px solid var(--blue)">
@@ -2792,7 +2889,7 @@ async function renderStoreStatusForYM(C, mc, selYM){
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--txt3)">
         <span>${sentPct}% บันทึกแล้ว</span>
-        <span>${sentList.length} / ${STORES.length} สาขา</span>
+        <span>${sentList.length} / ${countableStores.length} สาขา</span>
       </div>
     </div>
 
