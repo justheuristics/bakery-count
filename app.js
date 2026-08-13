@@ -16,6 +16,43 @@ let MASTER_UOM = {};   // item-master UOM reference (master_uom.json), keyed by 
 let MASTER_COST = {};  // indicative cost reference (master_cost.json), keyed by item code — display only, never persisted
 let REFERENCE_BAND = {}; // store cost reference band (store_reference_band.json), keyed by store no — display only, never persisted
 
+/* ════ ITEM MASTER VALIDATION (T1) ════
+   รหัสสินค้าซ้ำ = key เดียวกันใน entries/{storeNo}/{YYYY-MM}/{itemCode} → เขียนทับกันเงียบๆ
+   ตรวจตั้งแต่โหลด ไม่ปล่อยผ่านด้วย console.warn เฉยๆ (แนวเดียวกับ packaging repo) */
+let ITEM_MASTER_ISSUES = { duplicates: [] };
+
+function scanItemMasterIssues(items){
+  const seen = new Set();
+  const dupCodes = new Set();
+  const duplicates = [];
+  items.forEach(item=>{
+    const code = item.code;
+    if(seen.has(code) && !dupCodes.has(code)){
+      dupCodes.add(code);
+      duplicates.push({ code });
+    }
+    seen.add(code);
+  });
+  return { duplicates };
+}
+
+function isDuplicateItemCode(code){
+  return ITEM_MASTER_ISSUES.duplicates.some(d => d.code === code);
+}
+
+function renderMasterDataAlert(){
+  const el = document.getElementById('masterDataAlert');
+  if(!el) return;
+  const { duplicates } = ITEM_MASTER_ISSUES;
+  if(duplicates.length === 0){ el.classList.add('hidden'); el.innerHTML=''; return; }
+  const dupList = duplicates.map(d => esc(d.code)).join(', ');
+  el.classList.remove('hidden');
+  el.innerHTML = `
+    <div style="background:var(--red-bg);border-bottom:1px solid rgba(224,50,68,.3);color:var(--red);padding:10px 20px;font-size:12.5px;font-weight:600;line-height:1.6">
+      ⚠️ พบรหัสสินค้าซ้ำในรายการสินค้าหลัก (${duplicates.length} รายการ) — แจ้ง Admin เพื่อแก้ไข: ${dupList}
+    </div>`;
+}
+
 /* ════ LOAD DATA ════ */
 async function loadData() {
   try {
@@ -39,6 +76,12 @@ async function loadData() {
       const rres = await fetch('store_reference_band.json');
       REFERENCE_BAND = rres.ok ? (await rres.json()) : {};
     } catch(re) { REFERENCE_BAND = {}; console.warn('store_reference_band.json load failed:', re.message); }
+    /* ตรวจรหัสสินค้าซ้ำใน master ก่อนกรอง — ซ้ำที่ระดับ raw list คือปัญหาจริง ไม่ว่าจะผ่าน filter ด้านล่างหรือไม่ */
+    ITEM_MASTER_ISSUES = scanItemMasterIssues(json.items || []);
+    if(ITEM_MASTER_ISSUES.duplicates.length){
+      console.error('[scanItemMasterIssues] duplicate codes found in data.json items:', ITEM_MASTER_ISSUES.duplicates);
+    }
+    renderMasterDataAlert();
     /* จำกัดรายการนับเฉพาะรายการที่มี master record — ทุกรายการที่เหลือรับประกันว่ามี UOM/pack_size
        จาก master แล้ว หน่วยนับ/ขนาดบรรจุ จึงล็อกเสมอ (ทาง fallback แบบแก้ไขเองยังอยู่ในโค้ด
        แต่ในทางปฏิบัติ unreachable แล้ว เพราะไม่มีรายการไหนไม่มี master อีกต่อไป) */
@@ -1041,7 +1084,9 @@ function buildEntryRows(items, isActive=true){
     // a legacy row has no recorded sub_uom, nothing to attach a เศษ count to.
     const subunitEnabled = !isLegacy && !!msu;
     const psz = packLocked ? masterPackSize : (packVal!=='' ? Number(packVal) : null);
-    const nameCell=`<td class="name-cell">${SEARCH_Q?hlText(esc(it.name),SEARCH_Q):esc(it.name)}</td>`;
+    const dupBadge = isDuplicateItemCode(code)
+      ? ` <span class="uom-warn" title="รหัสสินค้านี้ซ้ำกับรายการอื่นในรายการหลัก — แจ้ง Admin เพื่อแก้ไข">รหัสซ้ำ</span>` : '';
+    const nameCell=`<td class="name-cell">${SEARCH_Q?hlText(esc(it.name),SEARCH_Q):esc(it.name)}${dupBadge}</td>`;
     const head=`<td class="code-cell">${it.no}</td><td><span class="cls-badge">${esc(it.class)}</span></td><td class="code-cell">${esc(code)}</td>${nameCell}`;
 
     // หน่วยนับ cell — same markup regardless of month-active state:
@@ -1971,6 +2016,13 @@ async function loadMasterDataFromFB() {
     const md = await dbGet('masterData');
     if (md) {
       if (md.items && Array.isArray(md.items) && md.items.length > 0) {
+        // ตรวจรหัสสินค้าซ้ำใน Firebase master ก่อนกรอง — masterData/items เขียนตรงจากหน้า admin
+        // "เพิ่มรายการสินค้าใหม่" ไม่ผ่านการตรวจ build-time ใดๆ จึงต้องตรวจตรงนี้
+        ITEM_MASTER_ISSUES = scanItemMasterIssues(md.items);
+        if(ITEM_MASTER_ISSUES.duplicates.length){
+          console.error('[scanItemMasterIssues] duplicate codes found in masterData/items:', ITEM_MASTER_ISSUES.duplicates);
+        }
+        renderMasterDataAlert();
         // same master-record filter as loadData() — an admin override must not resurrect
         // items without a master UOM/pack_size record
         ITEMS_DATA = md.items.filter(i => MASTER_UOM[i.code]);
@@ -2028,6 +2080,26 @@ function renderManageItems() {
   buildManageItemsView(C);
 }
 
+/* การ์ดแจ้งรหัสสินค้าซ้ำใน master แบบละเอียด — แสดงเฉพาะเมื่อพบปัญหา (T1) */
+function masterDataIssuesCardHtml(){
+  const { duplicates } = ITEM_MASTER_ISSUES;
+  if(duplicates.length === 0) return '';
+  const rows = duplicates.map(d => `<tr><td class="code-cell">${esc(d.code)}</td><td>รหัสสินค้าซ้ำในรายการหลัก</td></tr>`).join('');
+  return `
+    <div class="card" style="margin-bottom:14px;border:1px solid rgba(224,50,68,.35)">
+      <div class="card-head">
+        <div class="card-title" style="color:var(--red)">⚠️ ปัญหา Item Master ที่ต้องแก้ไข</div>
+        <div class="sub">${duplicates.length} รายการ — ส่งให้ Buyer/Admin ตรวจสอบก่อนใช้งานรหัสเหล่านี้</div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="dtbl">
+          <thead><tr><th>รหัสสินค้า</th><th>ปัญหา</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
 function buildManageItemsView(C) {
   const filtered = ITEM_SEARCH_Q
     ? ITEMS_DATA.filter(i =>
@@ -2049,6 +2121,7 @@ function buildManageItemsView(C) {
     </tr>`).join('');
 
   C.innerHTML = `
+    ${masterDataIssuesCardHtml()}
     <div class="card" style="margin-bottom:14px;border-left:4px solid var(--blue)">
       <div style="display:flex;align-items:center;gap:14px">
         <div style="font-size:36px">📦</div>
