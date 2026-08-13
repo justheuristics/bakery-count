@@ -1961,10 +1961,13 @@ async function onDashYMChange(ym){
   await renderAdminDashboardForYM(C, mc, ym);
 }
 
+/* T7: was Common Era — every other Thai date display in this file (ymToThai/ymToFull) is
+   already Buddhist Era (+543). This fed "บันทึกล่าสุด" in the store-status export, so that
+   file previously mixed a BE month heading with a CE timestamp column. */
 function formatThaiDT(ts){
   if(!ts) return '';
   const d=new Date(ts), pad=n=>String(n).padStart(2,'0');
-  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()+543} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 async function exportStoreStatusExcel(selYM){
