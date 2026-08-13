@@ -243,17 +243,47 @@ function masterSubUomOf(code){ const m=MASTER_UOM[code]; return (m && m.sub_uom)
 function masterPackSizeOf(code){ const m=MASTER_UOM[code]; return (m && m.pack_size!=null && Number(m.pack_size)>0) ? Number(m.pack_size) : null; }
 
 /* ═══ ประมาณการต้นทุน (est. cost) — buyer-facing reference only ═══
-   Computed at render time from MASTER_COST; never stored on the entry object,
-   never sent to doSaveEntry()/Firebase, never summed anywhere. */
+   Computed at render time; never stored on the entry object, never sent to
+   doSaveEntry()/Firebase, never summed anywhere.
+   T6: masterData/items' price/priceUom (admin-settable, live) takes priority over the
+   static master_cost.json fallback. priceUom can be denominated in either this item's
+   packtype OR its sub_uom (constrained to those two at entry time — see showEditItemModal) —
+   master_cost.json's cost_vat is always per-packtype (legacy assumption, unchanged). Never
+   guess which unit an unrecognized priceUom means; return null (→ "—") instead. */
+function itemByCode(code){ return ITEMS_DATA.find(i => i.code === code) || null; }
 function estCostOf(code, e){
   const m = MASTER_UOM[code];
-  const c = MASTER_COST[code];
-  if(!m || !c || c.cost_vat==null) return null;         // no master record or no cost data → "—"
+  if(!m) return null;
+  const item = itemByCode(code);
+  let costVat, costUom;
+  if(item && item.price!=null && item.priceUom){
+    costVat = Number(item.price);
+    costUom = item.priceUom;
+  } else {
+    const c = MASTER_COST[code];
+    if(!c || c.cost_vat==null) return null;              // no master record or no cost data → "—"
+    costVat = c.cost_vat;
+    costUom = m.packtype;                                 // master_cost.json is always per packtype
+  }
   const packSize = Number(m.pack_size) || 0;
   const qty    = (e && typeof e==='object' && e.qty!=='' && e.qty!=null) ? Number(e.qty) : 0;
   const subQty = (e && typeof e==='object' && e.subunit_qty!=null) ? Number(e.subunit_qty) : 0;
-  const perSubUnit = packSize>0 ? (c.cost_vat / packSize) : 0;
-  return qty * c.cost_vat + subQty * perSubUnit;
+  let packRate, subRate;
+  if(costUom === m.packtype){
+    packRate = costVat;
+    subRate = packSize>0 ? costVat/packSize : 0;
+  } else if(costUom === m.sub_uom){
+    subRate = costVat;
+    packRate = packSize>0 ? costVat*packSize : 0;
+  } else {
+    return null;                                          // priceUom doesn't match either known unit
+  }
+  return qty * packRate + subQty * subRate;
+}
+/* "฿1,234.00 / ถุง" — the UOM is always adjacent to the number, never a bare figure */
+function fmtPrice(item){
+  if(!item || item.price==null || !item.priceUom) return '—';
+  return `฿${fNum(item.price,2)} / ${esc(item.priceUom)}`;
 }
 /* shared as_of date for the column-header disclaimer (all entries share one extraction date today) */
 function costAsOfDate(){
@@ -2353,6 +2383,7 @@ function buildManageItemsView(C) {
       <td><span class="cls-badge">${esc(String(it.class))}</span></td>
       <td class="code-cell">${esc(it.code)}</td>
       <td style="white-space:normal;line-height:1.35;max-width:320px">${esc(it.name)}</td>
+      <td class="tr" style="white-space:nowrap">${fmtPrice(it)}</td>
       <td class="tr" style="white-space:nowrap">
         <button class="btn btn-secondary btn-xs" onclick="showEditItemModal(${ITEMS_DATA.indexOf(it)})">✏️ แก้ไข</button>
         <button class="btn btn-xs" style="background:var(--red-bg);color:var(--red);border:1px solid rgba(224,50,68,.2);cursor:pointer;padding:3px 8px;border-radius:var(--r8);font-size:11px;font-weight:600" onclick="confirmDeleteItem(${ITEMS_DATA.indexOf(it)})">🗑️ ลบ</button>
@@ -2376,6 +2407,7 @@ function buildManageItemsView(C) {
         <div class="card-title">📦 รายการสินค้าทั้งหมด <span class="sub">${ITEMS_DATA.length} รายการ</span></div>
         <div class="flex gap8 items-c">
           <button class="btn btn-blue" onclick="showAddItemModal()">➕ เพิ่มสินค้า</button>
+          <button class="btn btn-secondary btn-sm" onclick="showMasterCostMigrationModal()">📥 ย้ายราคาจาก master_cost.json</button>
           <button class="btn btn-secondary btn-sm" onclick="renderManageItems()">🔄 รีเฟรช</button>
         </div>
       </div>
@@ -2403,12 +2435,13 @@ function buildManageItemsView(C) {
               <th style="width:68px">Class</th>
               <th style="width:104px">รหัส</th>
               <th>ชื่อสินค้า</th>
+              <th style="width:140px;text-align:right">ราคา</th>
               <th style="width:120px;text-align:right">จัดการ</th>
             </tr>
           </thead>
-          <tbody>${rows || '<tr><td colspan="5" class="tc muted" style="padding:28px">ไม่พบรายการ</td></tr>'}</tbody>
+          <tbody>${rows || '<tr><td colspan="6" class="tc muted" style="padding:28px">ไม่พบรายการ</td></tr>'}</tbody>
           <tfoot>
-            <tr><td colspan="5" class="tr" style="font-size:12px;color:var(--txt3)">แสดง ${filtered.length} / ${ITEMS_DATA.length} รายการ</td></tr>
+            <tr><td colspan="6" class="tr" style="font-size:12px;color:var(--txt3)">แสดง ${filtered.length} / ${ITEMS_DATA.length} รายการ</td></tr>
           </tfoot>
         </table>
       </div>
@@ -2434,17 +2467,48 @@ function showAddItemModal() {
       </div>
       <div>
         <label class="flabel">รหัสสินค้า <span style="color:var(--red)">*</span></label>
-        <input type="text" class="ctrl w100" id="mi_code" placeholder="เช่น 123456">
+        <input type="text" class="ctrl w100" id="mi_code" placeholder="เช่น 123456" oninput="updateAddPriceUomOptions()">
       </div>
       <div>
         <label class="flabel">ชื่อสินค้า <span style="color:var(--red)">*</span></label>
         <input type="text" class="ctrl w100" id="mi_name" placeholder="ชื่อสินค้า">
+      </div>
+      <div>
+        <label class="flabel">ราคาต่อหน่วย (บาท)</label>
+        <input type="number" class="ctrl w100" id="mi_price" step="0.01" min="0" placeholder="เช่น 150.00">
+      </div>
+      <div>
+        <label class="flabel">หน่วยของราคา</label>
+        <select class="ctrl w100" id="mi_priceUom" disabled><option value="">— กรอกรหัสสินค้าที่มี master_uom.json ก่อน —</option></select>
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">รายการใหม่มักยังไม่มี master_uom.json (ต้อง deploy แยก) — ตั้งราคาได้ทีหลังผ่าน "แก้ไข" เมื่อมีแล้ว</div>
+      </div>
+      <div>
+        <label class="flabel">มีผลตั้งแต่เดือน</label>
+        <input type="month" class="ctrl w100" id="mi_priceEff" value="${currentYM()}">
       </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
       <button class="btn btn-blue" onclick="doAddItem(${nextNo})">➕ เพิ่มสินค้า</button>
     </div>`);
+}
+
+/* ราคาของรายการใหม่ตั้งได้ก็ต่อเมื่อ master_uom.json มีรหัสนี้อยู่แล้ว (deploy ล่วงหน้า) —
+   ปกติจะไม่มี เพราะรหัสสินค้าใหม่ยังไม่เคยผ่าน master_uom.json มาก่อน (ดู CLAUDE.md "Two sources
+   of truth") แต่รองรับกรณีที่มีไว้เผื่อ ไม่ควรเดาหน่วยเมื่อไม่รู้ */
+function updateAddPriceUomOptions(){
+  const code = document.getElementById('mi_code')?.value.trim();
+  const sel = document.getElementById('mi_priceUom');
+  if(!sel) return;
+  const m = code ? MASTER_UOM[code] : null;
+  if(!m || !m.packtype){
+    sel.innerHTML = '<option value="">— ไม่มี master_uom.json สำหรับรหัสนี้ ตั้งราคาไม่ได้ —</option>';
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  const opts = [...new Set([m.packtype, m.sub_uom].filter(Boolean))];
+  sel.innerHTML = opts.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
 }
 
 async function doAddItem(nextNo) {
@@ -2455,7 +2519,15 @@ async function doAddItem(nextNo) {
   const name = document.getElementById('mi_name').value.trim();
   if (!cls || !code || !name) { toast('กรุณากรอกข้อมูลให้ครบถ้วน', 'err'); return; }
   if (ITEMS_DATA.find(i => i.code === code)) { toast('รหัสสินค้านี้มีอยู่แล้ว', 'err'); return; }
-  const newItem = { no: nextNo, class: cls, code, name };
+  const priceSel = document.getElementById('mi_priceUom');
+  const priceStr = document.getElementById('mi_price').value.trim();
+  const hasPrice = priceStr !== '' && priceSel && !priceSel.disabled && priceSel.value;
+  const newItem = {
+    no: nextNo, class: cls, code, name,
+    price: hasPrice ? Number(priceStr) : null,
+    priceUom: hasPrice ? priceSel.value : null,
+    priceEffectiveFrom: hasPrice ? (document.getElementById('mi_priceEff').value || currentYM()) : null
+  };
   const newItems = [...ITEMS_DATA, newItem];
   closeModal();
   await saveMasterItems(newItems, `เพิ่มสินค้า ${code} — ${name} แล้ว ✅`);
@@ -2467,6 +2539,12 @@ function showEditItemModal(idx) {
   const clsOptions = [...new Set(ITEMS_DATA.map(i => i.class).filter(Boolean))]
     .sort((a, b) => { const na = Number(a), nb = Number(b); return (!isNaN(na) && !isNaN(nb)) ? na - nb : a.localeCompare(b); })
     .map(c => `<option value="${c}" ${c === String(it.class) ? 'selected' : ''}>Class ${c}</option>`).join('');
+  /* master_uom.json is guaranteed to exist for every item already in ITEMS_DATA — the load-time
+     filter (loadData()/loadMasterDataFromFB()) never admits an item without one. So unlike the
+     Add modal, the priceUom dropdown here is never empty/disabled. */
+  const m = MASTER_UOM[it.code] || {};
+  const uomOptions = [...new Set([m.packtype, m.sub_uom].filter(Boolean))]
+    .map(u => `<option value="${esc(u)}" ${it.priceUom === u ? 'selected' : ''}>${esc(u)}</option>`).join('');
 
   showModal(`
     <h3>✏️ แก้ไขสินค้า</h3>
@@ -2486,6 +2564,22 @@ function showEditItemModal(idx) {
         <label class="flabel">ชื่อสินค้า <span style="color:var(--red)">*</span></label>
         <input type="text" class="ctrl w100" id="ei_name" value="${esc(it.name)}">
       </div>
+      <div>
+        <label class="flabel">ราคาต่อหน่วย (บาท)</label>
+        <input type="number" class="ctrl w100" id="ei_price" step="0.01" min="0" value="${it.price!=null?it.price:''}" placeholder="เช่น 150.00">
+      </div>
+      <div>
+        <label class="flabel">หน่วยของราคา</label>
+        <select class="ctrl w100" id="ei_priceUom">
+          <option value="">— ไม่ระบุ —</option>
+          ${uomOptions}
+        </select>
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">จำกัดเฉพาะหน่วยของสินค้านี้ตาม master_uom.json (${esc(m.packtype||'—')} / ${esc(m.sub_uom||'—')})</div>
+      </div>
+      <div>
+        <label class="flabel">มีผลตั้งแต่เดือน</label>
+        <input type="month" class="ctrl w100" id="ei_priceEff" value="${esc(it.priceEffectiveFrom || currentYM())}">
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
@@ -2499,7 +2593,16 @@ async function doEditItem(idx) {
   const cls = clsNew || clsSel;
   const name = document.getElementById('ei_name').value.trim();
   if (!cls || !name) { toast('กรุณากรอกข้อมูลให้ครบถ้วน', 'err'); return; }
-  const newItems = ITEMS_DATA.map((it, i) => i === idx ? { ...it, class: cls, name } : it);
+  const priceStr = document.getElementById('ei_price').value.trim();
+  const priceUom = document.getElementById('ei_priceUom').value;
+  if (priceStr !== '' && !priceUom) { toast('กรุณาเลือกหน่วยของราคา', 'err'); return; }
+  const hasPrice = priceStr !== '' && priceUom;
+  const newItems = ITEMS_DATA.map((it, i) => i === idx ? {
+    ...it, class: cls, name,
+    price: hasPrice ? Number(priceStr) : null,
+    priceUom: hasPrice ? priceUom : null,
+    priceEffectiveFrom: hasPrice ? (document.getElementById('ei_priceEff').value || currentYM()) : null
+  } : it);
   closeModal();
   await saveMasterItems(newItems, `แก้ไขสินค้า ${ITEMS_DATA[idx].code} แล้ว ✅`);
 }
@@ -2543,6 +2646,69 @@ async function saveMasterItems(newItems, successMsg) {
   } catch (e) {
     toast('เกิดข้อผิดพลาด: ' + e.message, 'err');
   }
+}
+
+/* ════════════════════════════════════════════
+   [T6] One-off migration: master_cost.json → masterData/items price fields
+   Never overwrites an item that already has a price set (re-running after a partial
+   migration, or after an admin has since hand-edited a price, is always safe — it only
+   fills gaps). cost_vat is per-packtype (documented assumption, see estCostOf's comment),
+   so priceUom is always set to that item's packtype here, never sub_uom. Items missing a
+   master_uom or master_cost record are listed, never guessed (guardrail 4) — get
+   price:null and stay that way until resolved by hand via "แก้ไข".
+════════════════════════════════════════════ */
+function computeMasterCostMigrationPreview(){
+  const resolved = [], unresolved = [], alreadyPriced = [];
+  ITEMS_DATA.forEach(it => {
+    if (it.price != null) { alreadyPriced.push(it); return; }
+    const m = MASTER_UOM[it.code];
+    const c = MASTER_COST[it.code];
+    if (m && m.packtype && c && c.cost_vat != null) {
+      const eff = /^\d{4}-\d{2}-\d{2}$/.test(c.as_of || '') ? c.as_of.slice(0, 7) : currentYM();
+      resolved.push({ code: it.code, name: it.name, price: c.cost_vat, priceUom: m.packtype, priceEffectiveFrom: eff });
+    } else {
+      unresolved.push({ code: it.code, name: it.name, reason: !m ? 'ไม่มี master_uom.json' : 'ไม่มี master_cost.json' });
+    }
+  });
+  return { resolved, unresolved, alreadyPriced };
+}
+
+function showMasterCostMigrationModal(){
+  const { resolved, unresolved, alreadyPriced } = computeMasterCostMigrationPreview();
+  if (resolved.length === 0 && unresolved.length === 0) {
+    showModal(`
+      <h3>📥 ย้ายราคาจาก master_cost.json</h3>
+      <p style="color:var(--txt2);margin-top:10px">ทุกรายการมีราคาอยู่แล้ว (${alreadyPriced.length} รายการ) — ไม่มีอะไรต้องย้าย</p>
+      <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+    return;
+  }
+  const unresolvedRows = unresolved.map(u => `<tr><td class="code-cell">${esc(u.code)}</td><td>${esc(u.name)}</td><td style="color:var(--red)">${esc(u.reason)}</td></tr>`).join('');
+  showModal(`
+    <h3>📥 ย้ายราคาจาก master_cost.json</h3>
+    <p style="color:var(--txt2);margin-top:10px">
+      จะตั้งราคาให้ <b style="color:var(--green)">${resolved.length} รายการ</b> (ยังไม่เคยตั้งราคามาก่อน)
+      ${alreadyPriced.length ? `<br><span style="font-size:12px;color:var(--txt3)">ข้าม ${alreadyPriced.length} รายการที่มีราคาอยู่แล้ว — จะไม่ถูกเขียนทับ</span>` : ''}
+      ${unresolved.length ? `<br><span style="font-size:12px;color:var(--red)">${unresolved.length} รายการหาข้อมูลไม่ครบ จะเว้นว่างไว้ (ไม่เดา):</span>` : ''}
+    </p>
+    ${unresolved.length ? `
+    <div class="tbl-wrap" style="max-height:220px;margin-top:8px">
+      <table class="dtbl"><thead><tr><th>รหัส</th><th>ชื่อ</th><th>ปัญหา</th></tr></thead><tbody>${unresolvedRows}</tbody></table>
+    </div>` : ''}
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-blue" onclick="doMasterCostMigration()">📥 ยืนยันย้ายราคา (${resolved.length} รายการ)</button>
+    </div>`);
+}
+
+async function doMasterCostMigration(){
+  const { resolved } = computeMasterCostMigrationPreview();
+  const byCode = Object.fromEntries(resolved.map(r => [r.code, r]));
+  const newItems = ITEMS_DATA.map(it => {
+    const r = byCode[it.code];
+    return r ? { ...it, price: r.price, priceUom: r.priceUom, priceEffectiveFrom: r.priceEffectiveFrom } : it;
+  });
+  closeModal();
+  await saveMasterItems(newItems, `ย้ายราคาแล้ว ${resolved.length} รายการ ✅`);
 }
 
 /* ════════════════════════════════════════════
