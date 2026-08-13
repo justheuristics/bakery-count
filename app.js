@@ -2541,7 +2541,6 @@ function buildManageStoresView(C) {
       <td class="bold num">${s.n}</td>
       <td>${esc(s.name)}</td>
       <td class="code-cell">${esc(s.u)}</td>
-      <td class="code-cell">${esc(s.p)}</td>
       <td class="tr" style="white-space:nowrap">
         <button class="btn btn-secondary btn-xs" onclick="showEditStoreModal('${s.n}')">✏️ แก้ไข</button>
         <button class="btn btn-xs" style="background:var(--red-bg);color:var(--red);border:1px solid rgba(224,50,68,.2);cursor:pointer;padding:3px 8px;border-radius:var(--r8);font-size:11px;font-weight:600" onclick="confirmDeleteStore('${s.n}')">🗑️ ลบ</button>
@@ -2591,13 +2590,12 @@ function buildManageStoresView(C) {
               <th style="width:60px">เลขสาขา</th>
               <th>ชื่อสาขา</th>
               <th style="width:110px">Username</th>
-              <th style="width:100px">Password</th>
               <th style="width:120px;text-align:right">จัดการ</th>
             </tr>
           </thead>
-          <tbody>${rows || '<tr><td colspan="5" class="tc muted" style="padding:28px">ไม่พบสาขา</td></tr>'}</tbody>
+          <tbody>${rows || '<tr><td colspan="4" class="tc muted" style="padding:28px">ไม่พบสาขา</td></tr>'}</tbody>
           <tfoot>
-            <tr><td colspan="5" class="tr" style="font-size:12px;color:var(--txt3)">แสดง ${filtered.length} / ${STORES.length} สาขา</td></tr>
+            <tr><td colspan="4" class="tr" style="font-size:12px;color:var(--txt3)">แสดง ${filtered.length} / ${STORES.length} สาขา</td></tr>
           </tfoot>
         </table>
       </div>
