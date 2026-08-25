@@ -3213,9 +3213,14 @@ function computeAugustPriceImportPreview(importData){
     .filter(r => !!MASTER_UOM[r.code])
     .map(r => ({ code:r.code, name:r.name }));
 
-  const writtenPriceCodes = new Set(toWrite.filter(w => w.action === 'price').map(w => w.code));
+  // Every written code leaves the IN_VAT bucket — 'price' rows move to EX_VAT, but
+  // 'no_price' rows ALSO leave it (priceBasis goes to null, not staying IN_VAT). An earlier
+  // version of this only subtracted 'price' codes and overstated the residual by exactly
+  // the no_price count (reported 225 instead of the true 211 after the 25 Aug 2026 run) —
+  // fixed here so the projection this modal shows before a write is trustworthy.
+  const writtenCodes = new Set(toWrite.map(w => w.code));
   const currentInVatCount = ITEMS_DATA.filter(it => it.priceBasis === 'IN_VAT').length;
-  const projectedInVatAfter = ITEMS_DATA.filter(it => it.priceBasis === 'IN_VAT' && !writtenPriceCodes.has(it.code)).length;
+  const projectedInVatAfter = ITEMS_DATA.filter(it => it.priceBasis === 'IN_VAT' && !writtenCodes.has(it.code)).length;
 
   const canWrite = countErrors.length === 0 && validationErrors.length === 0;
 
