@@ -362,7 +362,14 @@ function evalOutlier(curBase, curValue, priorBase, median){
     valueRatio = curValue / median;
   }
   const flagged = (qtyRatio!=null && qtyRatio>=OUTLIER_FACTOR) || (valueRatio!=null && valueRatio>=OUTLIER_FACTOR);
-  return { flagged, qtyRatio, valueRatio, medianUnavailable };
+  /* T10: แถวที่ "ตรวจไม่ได้" ต้องแยกออกจากแถวที่ "ตรวจแล้วผ่าน" — เดิมทั้งสองกรณีได้
+     flagged===false เหมือนกันหมด แถวที่ทั้งสองอัตราส่วนเป็น null (สินค้าใหม่เดือนแรก /
+     สาขาแรกๆ ที่ส่งของเดือนนั้นซึ่งยังไม่มีค่ากลาง) จึงผ่านไปเงียบๆ โดยไม่เคยถูกตรวจเลย
+     ความหมายของ flagged ไม่เปลี่ยน และ coverage==='none' ต้องไม่ทำให้ flagged เป็น true
+     มิฉะนั้นสินค้าใหม่ทุกตัวจะเด้ง modal ยืนยัน จนคนติดนิสัยกดผ่าน แล้วการ์ดตัวที่ทำงานจริงก็เสียไปด้วย */
+  const checks = (qtyRatio!=null?1:0) + (valueRatio!=null?1:0);
+  const coverage = checks===2 ? 'full' : (checks===1 ? 'partial' : 'none');
+  return { flagged, qtyRatio, valueRatio, medianUnavailable, coverage };
 }
 
 /* store-side wrapper — อ่านจาก PRIOR_MONTH_BASE/ITEM_MEDIAN ที่โหลดไว้สำหรับสาขา+เดือนนี้ */
@@ -378,6 +385,46 @@ function computeOutlierFlag(code, entry){
   if(r.valueRatio!=null && r.valueRatio>=OUTLIER_FACTOR) parts.push(`มูลค่าสูงกว่าค่ากลางทั้งเครือ ${r.valueRatio.toFixed(1)} เท่า`);
   if(r.medianUnavailable) parts.push('(ยังไม่มีค่ากลางทั้งเครือสำหรับเดือนนี้)');
   return { code, qtyRatio:r.qtyRatio, valueRatio:r.valueRatio, medianUnavailable:r.medianUnavailable, reason: parts.join(' · ') };
+}
+
+/* ═══ T10: แถวที่ยังเทียบไม่ได้เลย (coverage==='none') ═══
+   คืน reason เฉพาะเมื่อทั้งสองด้านตรวจไม่ได้ — ไม่ใช่การบอกว่าตัวเลขผิด แต่บอกว่า "ยังไม่ได้ตรวจ"
+   ไม่ยุ่งกับ computeOutlierFlag()/flagged และไม่ทำให้เกิด modal ยืนยันตอนบันทึก */
+function computeCoverageNote(code, entry){
+  if(!isFilled(entry)) return null;
+  // guard เดียวกับ computeOutlierFlag(): totalBaseQty() จะ fallback ไปใช้ qty ดิบเมื่อไม่มี pack_size
+  // ซึ่งเป็นหน่วยคนละฐานกับ base-qty จริง ห้ามให้ค่านั้นไหลเข้าไปคิด qty ratio เด็ดขาด
+  const curBase = entry.pack_size!=null ? totalBaseQty(entry) : null;
+  const r = evalOutlier(curBase, estCostOf(code, entry), PRIOR_MONTH_BASE[code], ITEM_MEDIAN[code]);
+  if(r.coverage !== 'none') return null;
+  const why = [];
+  if(r.qtyRatio==null) why.push('ไม่มีข้อมูลเดือนก่อนให้เทียบ');
+  if(r.medianUnavailable) why.push('ยังไม่มีค่ากลางทั้งเครือสำหรับเดือนนี้');
+  else if(r.valueRatio==null) why.push('ยังคำนวณมูลค่าเทียบค่ากลางไม่ได้');
+  return { code, reason: why.join(' · ') };
+}
+/* chip แสดงบนแถวที่ตรวจไม่ได้ — ตั้งใจใช้สีเทากลางๆ ให้ต่างจาก "รหัสซ้ำ" (เหลือง) ชัดเจน */
+function coverageChipHtml(code){
+  const n = computeCoverageNote(code, ENTRY_DATA[code]);
+  if(!n) return '';
+  return ` <span class="nocheck-chip" title="${esc(n.reason)} — ไม่ได้แปลว่าตัวเลขนี้ผิด แต่แปลว่ายังเทียบกับอะไรไม่ได้">ยังเทียบไม่ได้</span>`;
+}
+/* live single-row refresh — pattern เดียวกับ updateEstCostCell() ไม่ re-render ทั้งตาราง ไม่หลุด focus */
+function updateCoverageChip(code){
+  const el = document.getElementById(`nc_${code}`);
+  if(el) el.innerHTML = coverageChipHtml(code);
+}
+
+/* ════ REFERENCE BAND CLASSIFIER (T10) ════
+   หนึ่งกฎ สามที่แสดงผล: แผงของสาขา, dashboard ของ admin, และไฟล์ Excel export.
+   "ไม่มีข้อมูลอ้างอิง" เป็นผลลัพธ์ของตัวมันเอง ไม่ใช่ผ่านการตรวจ — ห้าม return 'green'
+   และห้ามเทียบกับ 0 แทนช่วงที่ไม่มี (สาขาที่ไม่มี band แสดงว่า "อยู่ในช่วงปกติ"
+   แย่กว่าไม่แสดงอะไรเลย เพราะอ่านแล้วเหมือนตรวจผ่าน). */
+function classifyAgainstBand(total, band){
+  if(!band || band.min==null || band.max==null) return { status:'ไม่มีข้อมูลอ้างอิง', cls:'none' };
+  if(total < band.min) return { status:'ต่ำกว่าค่าต่ำสุด', cls:'amber' };
+  if(total > band.max) return { status:'สูงกว่าค่าสูงสุด', cls:'red' };
+  return { status:'อยู่ในช่วงปกติ', cls:'green' };
 }
 
 /* store cost reference band panel — total vs. historical min/avg/max, out-of-range flag.
@@ -409,10 +456,8 @@ function refBandInnerHtml(){
   const markerPct = pctOf(total);
   const avgPct = pctOf(avg);
 
-  let status, cls;
-  if(total < min){ status='ต่ำกว่าค่าต่ำสุด'; cls='amber'; }
-  else if(total > max){ status='สูงกว่าค่าสูงสุด'; cls='red'; }
-  else { status='อยู่ในช่วงปกติ'; cls='green'; }
+  // เรียก classifier ตัวเดียวกับที่ admin dashboard/export ใช้ — กฎเดียว หลายที่แสดงผล
+  const {status, cls} = classifyAgainstBand(total, band);
 
   return `
     <div class="ref-band-flex">
@@ -1206,7 +1251,8 @@ function buildEntryRows(items, isActive=true){
     const psz = packLocked ? masterPackSize : (packVal!=='' ? Number(packVal) : null);
     const dupBadge = isDuplicateItemCode(code)
       ? ` <span class="uom-warn" title="รหัสสินค้านี้ซ้ำกับรายการอื่นในรายการหลัก — แจ้ง Admin เพื่อแก้ไข">รหัสซ้ำ</span>` : '';
-    const nameCell=`<td class="name-cell">${SEARCH_Q?hlText(esc(it.name),SEARCH_Q):esc(it.name)}${dupBadge}</td>`;
+    // T10: span ว่างไว้เสมอ เพื่อให้ updateCoverageChip() เขียนทับได้ทีละแถวโดยไม่ต้อง re-render
+    const nameCell=`<td class="name-cell">${SEARCH_Q?hlText(esc(it.name),SEARCH_Q):esc(it.name)}${dupBadge}<span id="nc_${esc(code)}">${coverageChipHtml(code)}</span></td>`;
     const head=`<td class="code-cell">${it.no}</td><td><span class="cls-badge">${esc(it.class)}</span></td><td class="code-cell">${esc(code)}</td>${nameCell}`;
 
     // หน่วยนับ cell — same markup regardless of month-active state:
@@ -1319,6 +1365,7 @@ function onQty(code,val){
   }
   updateSubtotal();
   updateEstCostCell(code);
+  updateCoverageChip(code);
   updateReferenceBand();
 }
 function onUom(code,val){ const e=ensureEntry(code); e.uom=val||null; markDirty(); updateSubtotal(); }
@@ -1329,6 +1376,7 @@ function onSubunit(code,val){
   markDirty();
   updateSubtotal(); updateSubunitWarn(code);
   updateEstCostCell(code);
+  updateCoverageChip(code);
   updateReferenceBand();
 }
 function navRow(e,idx){
@@ -1649,7 +1697,9 @@ async function computeAndPersistOutlierExceptions(allE, selYM){
   dbSet(`stats/${selYM}/computedAt`, Date.now()).catch(()=>{});
 
   // pass 2: flag ทุกบรรทัดของทุกสาขา เทียบ median ที่เพิ่งคำนวณ + เดือนก่อนของสาขานั้นๆ
+  // T10: นับ coverage ไปพร้อมกันใน pass เดียวกันนี้ ไม่ต้องอ่าน Firebase เพิ่ม
   const exceptions = [];
+  let totalRows = 0, uncheckedCount = 0, partialCount = 0;
   Object.keys(allE).forEach(sNo=>{
     const mData = (allE[sNo]||{})[selYM] || {};
     const prevData = (allE[sNo]||{})[prevYm] || {};
@@ -1664,6 +1714,9 @@ async function computeAndPersistOutlierExceptions(allE, selYM){
       const curBase = entry.pack_size!=null ? totalBaseQty(entry) : null;
       const curValue = estCostOf(item.code, entry);
       const r = evalOutlier(curBase, curValue, priorBase, medianMap[item.code]);
+      totalRows++;
+      if(r.coverage==='none') uncheckedCount++;
+      else if(r.coverage==='partial') partialCount++;
       if(!r.flagged) return;
       const s = STORES.find(st=>String(st.n)===String(sNo));
       exceptions.push({
@@ -1675,14 +1728,30 @@ async function computeAndPersistOutlierExceptions(allE, selYM){
     });
   });
   exceptions.sort((a,b)=>b.ratio-a.ratio);
-  return exceptions.slice(0,20);
+  return { exceptions: exceptions.slice(0,20), totalRows, uncheckedCount, partialCount };
 }
 
-function exceptionQueueCardHtml(exceptions, selYM){
+/* T10: บรรทัดบอก coverage — ตัวเลขที่บอก admin ว่าเดือนนี้การ์ดตรวจครอบคลุมข้อมูลไปแค่ไหน
+   ต้องอยู่ติดกับ exception list ไม่ใช่ซ่อนไว้ที่อื่น และต้องแสดงแม้ตอนที่ไม่พบรายการผิดปกติ
+   เพราะ "ไม่พบรายการผิดปกติ" ล้วนๆ อ่านแล้วเหมือนตรวจครบทุกแถว ทั้งที่อาจไม่ได้ตรวจเลย */
+function coverageNoteHtml(r){
+  if(!r || !r.totalRows) return '';
+  const pct = Math.round((r.uncheckedCount / r.totalRows) * 100);
+  const tone = r.uncheckedCount>0 ? 'var(--warn)' : 'var(--txt3)';
+  return `<div style="padding:9px 15px;border-top:1px solid var(--border2);font-size:11.5px;color:var(--txt3);line-height:1.6">
+    <span style="color:${tone};font-weight:700">ตรวจไม่ได้ ${fNum(r.uncheckedCount)} แถว</span>
+    จากทั้งหมด ${fNum(r.totalRows)} แถวในเดือนนี้ (${pct}%) — ไม่มีทั้งข้อมูลเดือนก่อนและค่ากลางทั้งเครือให้เทียบ
+    · ตรวจได้ด้านเดียว ${fNum(r.partialCount)} แถว
+    <div style="color:var(--txt4);margin-top:2px">แถวเหล่านี้ไม่ได้ผิด แต่ยังไม่ได้ถูกตรวจ — ตัวเลขนี้บอกว่าการ์ดครอบคลุมข้อมูลเดือนนี้แค่ไหน</div>
+  </div>`;
+}
+
+function exceptionQueueCardHtml(exceptions, selYM, coverageStats){
   if(!exceptions.length){
     return `<div class="card" style="margin-bottom:14px">
       <div class="card-head"><div class="card-title">🚩 รายการที่ต้องตรวจสอบ — ${ymToFull(selYM)}</div></div>
       <div class="tc" style="padding:20px;color:var(--txt3);font-size:13px">✅ ไม่พบรายการผิดปกติในเดือนนี้</div>
+      ${coverageNoteHtml(coverageStats)}
     </div>`;
   }
   const rows = exceptions.map(e=>`
@@ -1706,22 +1775,18 @@ function exceptionQueueCardHtml(exceptions, selYM){
         <tbody>${rows}</tbody>
       </table>
     </div>
+    ${coverageNoteHtml(coverageStats)}
   </div>`;
 }
 
-async function renderAdminDashboardForYM(C, mc, selYM){
-  const curYM = currentYM();
-  const allE = await dbGet('entries') || {};
-  const exceptions = await computeAndPersistOutlierExceptions(allE, selYM);
-  const months = generateMonthList();
-  const activeCount = months.filter(ym=>mc[ym]&&mc[ym].active===true).length;
-  const selActive = mc[selYM] && mc[selYM].active === true;
-  const countableStores = STORES.filter(s=>isCountableAt(s, selYM));
-  const totalStoresAll = countableStores.length;
-
+/* ═══ per-store totals for one month (T10) ═══
+   ตัวเลขรวมต่อสาขาต้องมาจากที่เดียว — dashboard, การเทียบกับ reference band และไฟล์ Excel
+   ใช้ผลลัพธ์ก้อนเดียวกัน ถ้าคำนวณซ้ำคนละทางเมื่อไหร่ ตัวเลขฝั่ง admin กับฝั่งสาขาจะเริ่มเพี้ยนกัน
+   นิยาม "บันทึกแล้ว" = มีอย่างน้อย 1 แถวใน ITEMS_DATA ที่ qty ไม่ว่าง (เหมือน dashboard เดิม) */
+function storeMonthTotals(allE, selYM, countableStores){
   const countableNos = new Set(countableStores.map(s=>String(s.n)));
-  let selStores=0, selItems=0, selCost=0;
-  const sentStoreNos = new Set();
+  const costByStore = {}, filledByStore = {};
+  const sentNos = new Set();
   Object.keys(allE).forEach(sNo=>{
     if(!countableNos.has(String(sNo))) return; // ไม่นับสาขาที่ปิดแล้ว ณ เดือนที่เลือก แม้จะมีข้อมูลเก่าค้างอยู่
     const mData=(allE[sNo]||{})[selYM]||{};
@@ -1734,11 +1799,43 @@ async function renderAdminDashboardForYM(C, mc, selYM){
         if(c!=null) costSum += c;
       }
     });
-    if(f>0){ selStores++; selItems+=f; selCost+=costSum; sentStoreNos.add(String(sNo)); }
+    if(f>0){ costByStore[String(sNo)]=costSum; filledByStore[String(sNo)]=f; sentNos.add(String(sNo)); }
   });
+  return { costByStore, filledByStore, sentNos };
+}
+
+async function renderAdminDashboardForYM(C, mc, selYM){
+  const curYM = currentYM();
+  const allE = await dbGet('entries') || {};
+  const outlierResult = await computeAndPersistOutlierExceptions(allE, selYM);
+  const exceptions = outlierResult.exceptions;
+  const months = generateMonthList();
+  const activeCount = months.filter(ym=>mc[ym]&&mc[ym].active===true).length;
+  const selActive = mc[selYM] && mc[selYM].active === true;
+  const countableStores = STORES.filter(s=>isCountableAt(s, selYM));
+  const totalStoresAll = countableStores.length;
+
+  const { costByStore, filledByStore, sentNos: sentStoreNos } = storeMonthTotals(allE, selYM, countableStores);
+  const selStores = sentStoreNos.size;
+  const selItems  = Object.values(filledByStore).reduce((a,b)=>a+b, 0);
+  const selCost   = Object.values(costByStore).reduce((a,b)=>a+b, 0);
   const sentPct=totalStoresAll>0?Math.round(selStores/totalStoresAll*100):0;
   const sentList = countableStores.filter(s=>sentStoreNos.has(String(s.n)));
   const notSentList = countableStores.filter(s=>!sentStoreNos.has(String(s.n)));
+
+  /* ═══ T10: เทียบยอดรวมของแต่ละสาขากับ band ของสาขานั้นเอง ═══
+     ใช้ costByStore ที่คำนวณไว้แล้วข้างบน ไม่คำนวณยอดใหม่อีกรอบ
+     เรียง red → amber → green → ไม่มี band เพื่อให้สาขานอกช่วงอยู่บนสุดโดยไม่ต้องเลื่อนหา */
+  const bandRows = sentList.map(s=>{
+    const band = REFERENCE_BAND[String(s.n)];
+    const total = costByStore[String(s.n)] || 0;
+    return { s, total, band, ...classifyAgainstBand(total, band) };
+  });
+  const bandRank = { red:0, amber:1, green:2, none:3 };
+  bandRows.sort((a,b)=> (bandRank[a.cls]-bandRank[b.cls]) || (Number(a.s.n)-Number(b.s.n)));
+  const bandInCount    = bandRows.filter(r=>r.cls==='green').length;
+  const bandOutCount   = bandRows.filter(r=>r.cls==='red'||r.cls==='amber').length;
+  const bandNoneCount  = bandRows.filter(r=>r.cls==='none').length;
 
   const pastMonths   = months.filter(ym=>ym < curYM).reverse();
   const futureMonths = months.filter(ym=>ym > curYM);
@@ -1916,7 +2013,7 @@ async function renderAdminDashboardForYM(C, mc, selYM){
 
     ${classChartHTML}
 
-    ${exceptionQueueCardHtml(exceptions, selYM)}
+    ${exceptionQueueCardHtml(exceptions, selYM, outlierResult)}
 
     <div class="card">
       <div class="card-head" style="flex-wrap:wrap;gap:8px">
@@ -1925,6 +2022,15 @@ async function renderAdminDashboardForYM(C, mc, selYM){
           <div style="font-size:12px;color:var(--txt3);margin-top:2px">แบ่งสาขาตามสถานะ เพื่อให้ติดตามสาขาที่ยังไม่บันทึกได้ง่ายขึ้น</div>
         </div>
         <button onclick="exportStoreStatusExcel('${selYM}')" style="background:var(--amber);color:#fff;border:none;font-weight:700;padding:9px 16px;border-radius:var(--r8);cursor:pointer;font-size:13px">🧾 Export Excel</button>
+      </div>
+      <!-- T10: สรุปการเทียบกับช่วงอ้างอิงของแต่ละสาขา — "ไม่มีข้อมูลอ้างอิง" แยกเป็นตัวเลขของตัวเอง
+           ห้ามรวมเข้ากับ "อยู่ในช่วงปกติ" เพราะสาขาที่ไม่มี band ยังไม่ได้ถูกตรวจอะไรเลย -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r8)">
+        <span style="font-size:12px;font-weight:700;color:var(--txt2)">เทียบกับช่วงอ้างอิงของสาขา (${sentList.length} สาขาที่บันทึกแล้ว)</span>
+        <span class="ref-band-statuschip green" style="margin-bottom:0">อยู่ในช่วงปกติ ${bandInCount}</span>
+        <span class="ref-band-statuschip red" style="margin-bottom:0">นอกช่วงอ้างอิง ${bandOutCount}</span>
+        <span class="ref-band-statuschip none" style="margin-bottom:0">ไม่มีข้อมูลอ้างอิง ${bandNoneCount}</span>
+        <span style="font-size:10.5px;color:var(--txt4);flex:1;min-width:180px;text-align:right">ต้นทุนประมาณการ — ไม่ใช่มูลค่าอย่างเป็นทางการ</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border2);border-radius:var(--r12);overflow:hidden">
         <div style="border-right:1px solid var(--border2)">
@@ -1944,9 +2050,26 @@ async function renderAdminDashboardForYM(C, mc, selYM){
             <span style="font-size:12px;font-weight:800;background:var(--green);color:#fff;border-radius:999px;padding:2px 10px">${sentList.length} สาขา</span>
           </div>
           <div style="max-height:52vh;overflow-y:auto">
-            ${sentList.length===0
+            ${bandRows.length===0
               ? '<div style="padding:24px;text-align:center;color:var(--txt3);font-size:13px">ยังไม่มีสาขาที่บันทึก</div>'
-              : sentList.map((s,i)=>{ const ts=lastSaveMap[String(s.n)]; return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border2);${i%2===0?'background:var(--surface1)':''}" ><span style="font-size:11px;color:var(--txt4);font-weight:700;min-width:22px">${s.n}</span><span style="font-size:12.5px;color:var(--txt);font-weight:500;flex:1">บมจ.ซีพี แอ็กซ์ตร้า สาขา${esc(s.name)} ${s.n}</span><span style="font-size:11px;color:var(--txt4);white-space:nowrap">${ts?formatThaiDT(ts):''}</span></div>`; }).join('')}
+              : bandRows.map((r,i)=>{
+                  const s=r.s, ts=lastSaveMap[String(s.n)];
+                  const bandTxt = r.band
+                    ? `ช่วงอ้างอิง ${fNum(r.band.min,0)} – ${fNum(r.band.max,0)}`
+                    : 'ยังไม่มีข้อมูลอ้างอิงสำหรับสาขานี้';
+                  return `<div style="padding:9px 14px;border-bottom:1px solid var(--border2);${i%2===0?'background:var(--surface1)':''}">
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <span style="font-size:11px;color:var(--txt4);font-weight:700;min-width:22px">${s.n}</span>
+                      <span style="font-size:12.5px;color:var(--txt);font-weight:500;flex:1">บมจ.ซีพี แอ็กซ์ตร้า สาขา${esc(s.name)} ${s.n}</span>
+                      <span class="ref-band-statuschip ${r.cls}" style="margin-bottom:0;font-size:10.5px;padding:2px 9px;white-space:nowrap">${r.status}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;margin-top:3px;padding-left:32px">
+                      <span style="font-size:11px;font-family:var(--mono);font-weight:700;color:var(--txt2)">฿${fNum(r.total,2)}</span>
+                      <span style="font-size:10.5px;color:var(--txt4);font-family:${r.band?'var(--mono)':'inherit'};flex:1">${bandTxt}</span>
+                      <span style="font-size:10.5px;color:var(--txt4);white-space:nowrap">${ts?formatThaiDT(ts):''}</span>
+                    </div>
+                  </div>`;
+                }).join('')}
           </div>
         </div>
       </div>
@@ -1976,21 +2099,38 @@ async function exportStoreStatusExcel(selYM){
   const logs  = await dbGet('logs') || {};
   const lastSaveMap = {};
   Object.values(logs).forEach(l=>{ if(l&&l.no&&l.ym===selYM){ if(!lastSaveMap[l.no]||l.ts>lastSaveMap[l.no]) lastSaveMap[l.no]=l.ts; } });
-  const sentNos = new Set();
-  Object.keys(allE).forEach(sNo=>{ const mData=(allE[sNo]||{})[selYM]||{}; if(Object.keys(mData).filter(k=>mData[k]!==null&&mData[k]!=='').length>0) sentNos.add(String(sNo)); });
   const countableStores = STORES.filter(s=>isCountableAt(s, selYM));
+  /* T10: ยอดรวมและนิยาม "บันทึกแล้ว" มาจาก storeMonthTotals ตัวเดียวกับ dashboard
+     เดิมไฟล์นี้นับ "บันทึกแล้ว" จาก key ใดๆ ที่ไม่ว่างใน node ของเดือนนั้น ซึ่งเป็นคนละกฎกับ
+     dashboard (ที่นับเฉพาะแถวใน ITEMS_DATA ที่มี qty) — ถ้าปล่อยไว้ คอลัมน์สถานะกับคอลัมน์
+     ช่วงอ้างอิงในไฟล์เดียวกันจะคำนวณคนละทาง ซึ่งเป็นความเพี้ยนแบบเดียวกับที่ ticket ห้ามไว้ */
+  const { costByStore, sentNos } = storeMonthTotals(allE, selYM, countableStores);
+  /* คืนค่าคอลัมน์ band 3 ช่อง — สาขาที่ไม่มี band ต้องอ่านว่า "ไม่มีข้อมูลอ้างอิง" เท่านั้น
+     ห้ามออกมาเป็น "อยู่ในช่วงปกติ" ในไฟล์ Excel เช่นเดียวกับบนหน้าจอ */
+  const bandCols = sNo => {
+    const band = REFERENCE_BAND[String(sNo)];
+    const total = costByStore[String(sNo)] || 0;
+    const { status } = classifyAgainstBand(total, band);
+    return [ total, band?band.min:'—', band?band.max:'—', status ];
+  };
   const wb = XLSX.utils.book_new();
   const notR=[['ลำดับ','เลขสาขา','ชื่อสาขา','Username','สถานะ']];
   countableStores.filter(s=>!sentNos.has(String(s.n))).forEach((s,i)=>notR.push([i+1,s.n,s.name,s.u,'ยังไม่บันทึก']));
   const ws1=XLSX.utils.aoa_to_sheet(notR); ws1['!cols']=[{wch:6},{wch:10},{wch:32},{wch:14},{wch:14}];
   XLSX.utils.book_append_sheet(wb,ws1,'ยังไม่บันทึก');
-  const sentR=[['ลำดับ','เลขสาขา','ชื่อสาขา','Username','บันทึกล่าสุด','สถานะ']];
-  countableStores.filter(s=>sentNos.has(String(s.n))).forEach((s,i)=>sentR.push([i+1,s.n,s.name,s.u,lastSaveMap[String(s.n)]?formatThaiDT(lastSaveMap[String(s.n)]):'—','บันทึกแล้ว']));
-  const ws2=XLSX.utils.aoa_to_sheet(sentR); ws2['!cols']=[{wch:6},{wch:10},{wch:32},{wch:14},{wch:20},{wch:12}];
+  const sentR=[['ลำดับ','เลขสาขา','ชื่อสาขา','Username','บันทึกล่าสุด','สถานะ','ต้นทุนประมาณการรวม','ช่วงอ้างอิง ต่ำสุด','ช่วงอ้างอิง สูงสุด','สถานะเทียบช่วงอ้างอิง']];
+  countableStores.filter(s=>sentNos.has(String(s.n))).forEach((s,i)=>sentR.push([i+1,s.n,s.name,s.u,lastSaveMap[String(s.n)]?formatThaiDT(lastSaveMap[String(s.n)]):'—','บันทึกแล้ว',...bandCols(s.n)]));
+  const ws2=XLSX.utils.aoa_to_sheet(sentR); ws2['!cols']=[{wch:6},{wch:10},{wch:32},{wch:14},{wch:20},{wch:12},{wch:20},{wch:18},{wch:18},{wch:22}];
   XLSX.utils.book_append_sheet(wb,ws2,'บันทึกแล้ว');
-  const allR=[['ลำดับ','เลขสาขา','ชื่อสาขา','Username','สถานะ','บันทึกล่าสุด']];
-  countableStores.forEach((s,i)=>{ const sent=sentNos.has(String(s.n)); allR.push([i+1,s.n,s.name,s.u,sent?'บันทึกแล้ว':'ยังไม่บันทึก',sent&&lastSaveMap[String(s.n)]?formatThaiDT(lastSaveMap[String(s.n)]):'—']); });
-  const ws3=XLSX.utils.aoa_to_sheet(allR); ws3['!cols']=[{wch:6},{wch:10},{wch:32},{wch:14},{wch:14},{wch:20}];
+  const allR=[['ลำดับ','เลขสาขา','ชื่อสาขา','Username','สถานะ','บันทึกล่าสุด','ต้นทุนประมาณการรวม','ช่วงอ้างอิง ต่ำสุด','ช่วงอ้างอิง สูงสุด','สถานะเทียบช่วงอ้างอิง']];
+  countableStores.forEach((s,i)=>{
+    const sent=sentNos.has(String(s.n));
+    const band=REFERENCE_BAND[String(s.n)];
+    // สาขาที่ยังไม่บันทึกไม่มียอดให้เทียบ — แสดงช่วงอ้างอิงไว้ได้ แต่สถานะต้องเป็น "ยังไม่บันทึก" ไม่ใช่ผลการตรวจ
+    const tail = sent ? bandCols(s.n) : ['—', band?band.min:'—', band?band.max:'—', 'ยังไม่บันทึก'];
+    allR.push([i+1,s.n,s.name,s.u,sent?'บันทึกแล้ว':'ยังไม่บันทึก',sent&&lastSaveMap[String(s.n)]?formatThaiDT(lastSaveMap[String(s.n)]):'—',...tail]);
+  });
+  const ws3=XLSX.utils.aoa_to_sheet(allR); ws3['!cols']=[{wch:6},{wch:10},{wch:32},{wch:14},{wch:14},{wch:20},{wch:20},{wch:18},{wch:18},{wch:22}];
   XLSX.utils.book_append_sheet(wb,ws3,'ทั้งหมด');
   XLSX.writeFile(wb,`StoreStatus_${selYM}_Bakery.xlsx`);
   toast('Export สำเร็จ ✅','ok');
@@ -3010,11 +3150,10 @@ async function renderStoreStatusForYM(C, mc, selYM){
   const months = generateMonthList();
 
   const countableStores = STORES.filter(s=>isCountableAt(s, selYM));
-  const sentStoreNos = new Set();
-  Object.keys(allE).forEach(sNo=>{
-    const mData=(allE[sNo]||{})[selYM]||{};
-    if(Object.keys(mData).filter(k=>mData[k]!==null&&mData[k]!=='').length>0) sentStoreNos.add(String(sNo));
-  });
+  /* T10: ใช้ storeMonthTotals ตัวเดียวกับ dashboard และ export
+     หน้านี้มีปุ่ม Export Excel อยู่ด้วย — ถ้านับ "บันทึกแล้ว" คนละกฎกับไฟล์ที่ปุ่มนี้สร้าง
+     ตัวเลขบนหน้าจอกับในไฟล์จะไม่ตรงกันเอง */
+  const { sentNos: sentStoreNos } = storeMonthTotals(allE, selYM, countableStores);
   const sentList    = countableStores.filter(s=>sentStoreNos.has(String(s.n)));
   const notSentList = countableStores.filter(s=>!sentStoreNos.has(String(s.n)));
 
