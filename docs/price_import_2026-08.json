@@ -1,0 +1,3296 @@
+{
+  "source": "Bakery_Price_Import_2026-08_FILLED.xlsx",
+  "sourceSha256": "40d9e1d4aa1a79d4fac4200146c05b9445a4fe1135bd9b54b3d93764e7b85c4c",
+  "effectiveFrom": "2026-08",
+  "basis": "EX_VAT",
+  "generatedBy": "tools/extract_price_import.py",
+  "expected": {
+    "total_rows": 295,
+    "countable": 122,
+    "changed": 29,
+    "unchanged": 61,
+    "new": 23,
+    "no_price": 38,
+    "not_countable": 144,
+    "not_in_item_master": 7,
+    "beyond_20pct": 19,
+    "duplicate_codes": 0,
+    "no_price_in_source_sheet": 42,
+    "conflicts": 5
+  },
+  "beyond20pct": [
+    {
+      "code": "295346",
+      "name": "กล่องจตุรัส  MAK10 200 ชิ้นX1",
+      "status": "CHANGED",
+      "deltaPct": -0.235860409145608
+    },
+    {
+      "code": "303819",
+      "name": "RM_กล่องขนมบรรจุ 3 ชิ้น 450ชุดX1",
+      "status": "CHANGED",
+      "deltaPct": -0.235927072471111
+    },
+    {
+      "code": "399180",
+      "name": "กล่อง6ช่องฝาในตัวMAK03-1 300ชนX1",
+      "status": "CHANGED",
+      "deltaPct": -0.236276849642005
+    },
+    {
+      "code": "871971",
+      "name": "กล่องทาร์ต 2 ช่อง MAK32 300ชุด X1",
+      "status": "CHANGED",
+      "deltaPct": -0.23780487804878
+    },
+    {
+      "code": "919757",
+      "name": "กล่อง 9 ช่อง 100ชิ้นx1",
+      "status": "CHANGED",
+      "deltaPct": -0.248704663212435
+    },
+    {
+      "code": "921130",
+      "name": "กล่องคุกกี้ 5 ชิ้น 200ชิ้นx1",
+      "status": "CHANGED",
+      "deltaPct": -0.244604316546763
+    },
+    {
+      "code": "922290",
+      "name": "ถุงIPPA ARO GOLD8.5\"x12.5\"x1000x1",
+      "status": "CHANGED",
+      "deltaPct": -0.350260162601626
+    },
+    {
+      "code": "922291",
+      "name": "ถุง IPPA ARO GOLD 9\"x15.5\"x1000x1",
+      "status": "CHANGED",
+      "deltaPct": -0.388305970149254
+    },
+    {
+      "code": "925386",
+      "name": "กล่องเบเกอรี่H6ฝาล็อคX1000ชิ้นX1",
+      "status": "CHANGED",
+      "deltaPct": -0.236842105263158
+    },
+    {
+      "code": "974289",
+      "name": "เนื้อมะพร้าวแช่แข็งแบบเส้น1กก.X1",
+      "status": "CHANGED",
+      "deltaPct": 0.336360661351619
+    },
+    {
+      "code": "109830",
+      "name": "คนอร์ พิซซ่าซอส 1000ก.X1",
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "121586",
+      "name": "เซพแพ็คสวีทเบเกอรีมายองเนส1000กX1",
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "198368",
+      "name": "ARO ไข่ไก่ เบอร์ 2 มีฝา 30 ฟอง",
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "202995",
+      "name": "ลิน น้ำตาลไอซิ่ง900กรัม*1",
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "668317",
+      "name": "เอโร่เกลือเสริมไอโอดีน 5กก.X1ถุง",
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "800659",
+      "name": "ฟอลคอน นมข้นจืด 1000มล.X12",
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "805241",
+      "name": "ไวท์เบอร์เกอร์สไลด์โพรเซสชีสX1",
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "837643",
+      "name": "AROแป้งข้าวโพด 1000ก*1",
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "864201",
+      "name": "ตราเอโร่ น้ำส้มสายชูฯ 5% 4500มลX1",
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    }
+  ],
+  "noPriceInSource": [
+    {
+      "code": "102136",
+      "name": "AROเม็ดมะม่วงหิมพานต์ซีก 800 กรัม"
+    },
+    {
+      "code": "104517",
+      "name": "ฟอลคอน นมข้นจืด 375ก.X6กป"
+    },
+    {
+      "code": "117474",
+      "name": "เอโร่ ซอสมะเขือเทศ 1000กx1"
+    },
+    {
+      "code": "117819",
+      "name": "มินิครัวซองต์15กรัมX10"
+    },
+    {
+      "code": "118069",
+      "name": "ฟอลคอน นมข้นจืด 1000มล.X1กล"
+    },
+    {
+      "code": "124406",
+      "name": "เอโร่ผักรวมแช่แข็ง 1กกx10"
+    },
+    {
+      "code": "134440",
+      "name": "เซพแพ็ค แซนวิชสเปรด 1 กก."
+    },
+    {
+      "code": "154817",
+      "name": "GOLDKORMIX  MIX 1*10KG."
+    },
+    {
+      "code": "154821",
+      "name": "COMBICORN BREADMIX  1*10KG."
+    },
+    {
+      "code": "155543",
+      "name": "โอวีเทค 20กก.*1"
+    },
+    {
+      "code": "162727",
+      "name": "เอโร่ ซอสมะเขือเทศ 10กรัมx100ซอง"
+    },
+    {
+      "code": "163806",
+      "name": "มินิครัวซองต์ไส้กรอกหมูชีส40กX4ช"
+    },
+    {
+      "code": "163882",
+      "name": "มินิครัวซองต์แฮมชีส 30 ก X 4 ชิ้น"
+    },
+    {
+      "code": "164221",
+      "name": "AROมอสซาเรลล่าขูดเส้นแช่แข็ง1กก*1"
+    },
+    {
+      "code": "185907",
+      "name": "งาขาว ตราARO  500กรัมX6"
+    },
+    {
+      "code": "185923",
+      "name": "งาดำ ตราARO 500กX6"
+    },
+    {
+      "code": "194079",
+      "name": "ผักสลัดกรีนโอ๊ค (ไฮโดรฯ) แพค500ก."
+    },
+    {
+      "code": "199898",
+      "name": "ครัวซองต์เนยสด 43 กรัมX4"
+    },
+    {
+      "code": "204428",
+      "name": "แป้งโฮลวีตมิกซ์ตราปังทอง22.5กก.*1"
+    },
+    {
+      "code": "229666",
+      "name": "เอโร่ ข้าวโอ๊ต 1 กก.x1"
+    },
+    {
+      "code": "230759",
+      "name": "เชื้อเข้มข้นกลิ่นส้ม 1กก."
+    },
+    {
+      "code": "230762",
+      "name": "แป้งขนมปังมันฝรั่ง1*10กก."
+    },
+    {
+      "code": "230763",
+      "name": "เชื้อเข้มข้นกลิ่นสตรอเบอรี่1กก."
+    },
+    {
+      "code": "230807",
+      "name": "INTER_แป้งสำเร็จรูปชิฟฟ่อน 15กก*1"
+    },
+    {
+      "code": "230811",
+      "name": "ผงสำเร็จคัสตาร์ด1*10กก."
+    },
+    {
+      "code": "30069",
+      "name": "AROมาร์การีน(เนยเหลือง) 15KG.*1"
+    },
+    {
+      "code": "324363",
+      "name": "มะเขือเทศท้อ กก. ละ"
+    },
+    {
+      "code": "339049",
+      "name": "RM_กล่องฝาพับเรียบ 400 ชิ้น x 1"
+    },
+    {
+      "code": "714082",
+      "name": "RM_สกิปปีพีนัทบัตเตอร์ 1กก.x6ชนx1"
+    },
+    {
+      "code": "785124",
+      "name": "RM_สติ๊กเกอร์ครัวซองต์พีนัต300ช"
+    },
+    {
+      "code": "802109",
+      "name": "ถุงครัวซองต์1X1000 ใบ"
+    },
+    {
+      "code": "803955",
+      "name": "อัลมอนด์สไลซ์ 11.34 กกX1"
+    },
+    {
+      "code": "846983",
+      "name": "ARO ปูอัดแช่แข็ง 1000ก.X1"
+    },
+    {
+      "code": "849422",
+      "name": "นิปปุ่นซอฟเบรคมิกซ์25กกX1กระสอบ"
+    },
+    {
+      "code": "859219",
+      "name": "โมจิเบรดมิกซ์ 25 กก. X 1 กระสอบ"
+    },
+    {
+      "code": "860308",
+      "name": "โคฟเวอร์ลิคออเร้นจ์โค้ตติ้ง1กกX10"
+    },
+    {
+      "code": "860309",
+      "name": "โคฟเวอร์สตอร์เบอรี่โค้ตติ้ง1กกX10"
+    },
+    {
+      "code": "860311",
+      "name": "โคฟเวอร์ลักซ์ไวท์1 กก X 10"
+    },
+    {
+      "code": "860357",
+      "name": "เดนิชม้วน (โดแช่แข็ง)50กX120ชิ้น"
+    },
+    {
+      "code": "867171",
+      "name": "ถุงกระดาษน้ำตาล 1000 ชิ้น"
+    },
+    {
+      "code": "919758",
+      "name": "กล่องพาย 4 ชิ้น 100 ชิ้นx1"
+    },
+    {
+      "code": "970469",
+      "name": "RM_ ขนมปังหวานแช่แข็ง 30กx225ชx1"
+    }
+  ],
+  "conflicts": [
+    {
+      "code": "924802",
+      "name": "ซอสมะเขือเทศเอโร่ 1กก.x12",
+      "allStoresExVat": 252,
+      "looseExVat": 260.4,
+      "note": "Genuine price difference between the two documents"
+    },
+    {
+      "code": "213860",
+      "name": "เอโร่เปลือกทาร์ตFZ18ชนX16",
+      "allStoresExVat": 716.6124,
+      "looseExVat": 691.8239,
+      "note": "Genuine price difference between the two documents"
+    },
+    {
+      "code": "204345",
+      "name": "BF ผงฟู สูตรดับเบิลแอ็คติง 1 กก.",
+      "allStoresExVat": 106.74,
+      "looseExVat": "-",
+      "note": "Loose file says store retail cost; all-stores file has a confirmed price"
+    },
+    {
+      "code": "183153",
+      "name": "ทิวลิปดาร์คชอคโกแลตชิพกลาง550กX2",
+      "allStoresExVat": 227.8,
+      "looseExVat": "-",
+      "note": "Loose file says store retail cost; all-stores file has a confirmed price"
+    },
+    {
+      "code": "182866",
+      "name": "เบคกิ้งโซดาตราเบสท์โอเดอร์500ก*1",
+      "allStoresExVat": 26,
+      "looseExVat": "-",
+      "note": "Loose file says store retail cost; all-stores file has a confirmed price"
+    }
+  ],
+  "rows": [
+    {
+      "code": "125789",
+      "name": "เบคอนคลาสสิค1กก.*4",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 4000,
+      "newPriceExVat": 1060.0,
+      "status": "CHANGED",
+      "deltaPct": -0.022140221402214
+    },
+    {
+      "code": "125844",
+      "name": "ไส้กรอกเวียนนาAคลาสสิค(ไก่ผสมหมู)",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 4000,
+      "newPriceExVat": 420.0,
+      "status": "CHANGED",
+      "deltaPct": -0.0454545454545455
+    },
+    {
+      "code": "125892",
+      "name": "แฮมหมูคลาสสิค1กก.*4",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 4000,
+      "newPriceExVat": 704.0,
+      "status": "CHANGED",
+      "deltaPct": -0.032967032967033
+    },
+    {
+      "code": "154810",
+      "name": "CITRI-FI200 FG 1*20 KG.",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 20000,
+      "newPriceExVat": 9660.0,
+      "status": "CHANGED",
+      "deltaPct": -0.0621359223300971
+    },
+    {
+      "code": "183153",
+      "name": "ทิวลิปดาร์คชอคโกแลตชิพกลาง550กX2",
+      "class": "-",
+      "priceUom": "ถุง",
+      "packSize": 1100,
+      "newPriceExVat": 227.8,
+      "status": "CHANGED",
+      "deltaPct": 2.45835718525801e-05
+    },
+    {
+      "code": "204345",
+      "name": "BF ผงฟู สูตรดับเบิลแอ็คติง 1 กก.",
+      "class": "-",
+      "priceUom": "แพ็ค",
+      "packSize": 10000,
+      "newPriceExVat": 106.74,
+      "status": "CHANGED",
+      "deltaPct": -0.0530484494267191
+    },
+    {
+      "code": "204492",
+      "name": "แป้งมอยส์ชอคโกแลตมิกซ์ 20กก*1ถุง",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 20000,
+      "newPriceExVat": 2480.0,
+      "status": "CHANGED",
+      "deltaPct": -0.0205371248025276
+    },
+    {
+      "code": "213966",
+      "name": "เอโร่เปลือกทาร์ตFZ18ชิ้น",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 18,
+      "newPriceExVat": 44.9511,
+      "status": "CHANGED",
+      "deltaPct": -0.0162064799656831
+    },
+    {
+      "code": "295346",
+      "name": "กล่องจตุรัส  MAK10 200 ชิ้นX1",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 200,
+      "newPriceExVat": 1270.0,
+      "status": "CHANGED",
+      "deltaPct": -0.235860409145608
+    },
+    {
+      "code": "303819",
+      "name": "RM_กล่องขนมบรรจุ 3 ชิ้น 450ชุดX1",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 1350,
+      "newPriceExVat": 1282.5,
+      "status": "CHANGED",
+      "deltaPct": -0.235927072471111
+    },
+    {
+      "code": "338432",
+      "name": "โดว์ขนมปังใบเตยมะพร้าว 80กx80ชนx1",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 80,
+      "newPriceExVat": 760.0,
+      "status": "CHANGED",
+      "deltaPct": -0.124998661593348
+    },
+    {
+      "code": "399180",
+      "name": "กล่อง6ช่องฝาในตัวMAK03-1 300ชนX1",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 300,
+      "newPriceExVat": 960.0,
+      "status": "CHANGED",
+      "deltaPct": -0.236276849642005
+    },
+    {
+      "code": "752564",
+      "name": "ไส้ไข่เค็มลาวากวน 1 กก. X 1",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 1000,
+      "newPriceExVat": 177.0,
+      "status": "CHANGED",
+      "deltaPct": -0.0380434782608696
+    },
+    {
+      "code": "791442",
+      "name": "ไส้เนื้อเค้กกลิ่นวานิลลา1200ก.x6",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 6,
+      "newPriceExVat": 1140.0,
+      "status": "CHANGED",
+      "deltaPct": -0.0865384615384615
+    },
+    {
+      "code": "820892",
+      "name": "กล้วยหอมแช่แข็ง5กกX2ถุง",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 10000,
+      "newPriceExVat": 330.0,
+      "status": "CHANGED",
+      "deltaPct": -0.0833333333333333
+    },
+    {
+      "code": "833556",
+      "name": "แป้งขนมปัง CJ22.5กก.X1กระสอบ",
+      "class": "68",
+      "priceUom": "กระสอบ",
+      "packSize": 22500,
+      "newPriceExVat": 610.95,
+      "status": "CHANGED",
+      "deltaPct": -0.0309999138772327
+    },
+    {
+      "code": "833557",
+      "name": "แป้งเค้กCJ22.5กก.X1กระสอบ",
+      "class": "68",
+      "priceUom": "กระสอบ",
+      "packSize": 22500,
+      "newPriceExVat": 725.15,
+      "status": "CHANGED",
+      "deltaPct": -0.0292503346720215
+    },
+    {
+      "code": "833558",
+      "name": "แป้งอเนกประสงค์CJ22.5กก.X1กระสอบ",
+      "class": "68",
+      "priceUom": "กระสอบ",
+      "packSize": 22500,
+      "newPriceExVat": 581.25,
+      "status": "CHANGED",
+      "deltaPct": -0.0288144284508166
+    },
+    {
+      "code": "836096",
+      "name": "เอส500 อัลตร้า1กกX 1 ถุง",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 1000,
+      "newPriceExVat": 126.0,
+      "status": "CHANGED",
+      "deltaPct": -0.0194911158891466
+    },
+    {
+      "code": "846014",
+      "name": "เบรคฟาสต์ซอสเซจ5.5นิ้ว1KG X10",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 10000,
+      "newPriceExVat": 1160.0,
+      "status": "CHANGED",
+      "deltaPct": -0.00854700854700855
+    },
+    {
+      "code": "860310",
+      "name": "โคฟเวอร์ลักซ์ ดาร์ค 1 กก X 10",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 10000,
+      "newPriceExVat": 1660.0,
+      "status": "CHANGED",
+      "deltaPct": -0.0206489675516224
+    },
+    {
+      "code": "871971",
+      "name": "กล่องทาร์ต 2 ช่อง MAK32 300ชุด X1",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 300,
+      "newPriceExVat": 750.0,
+      "status": "CHANGED",
+      "deltaPct": -0.23780487804878
+    },
+    {
+      "code": "919757",
+      "name": "กล่อง 9 ช่อง 100ชิ้นx1",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 100,
+      "newPriceExVat": 290.0,
+      "status": "CHANGED",
+      "deltaPct": -0.248704663212435
+    },
+    {
+      "code": "921130",
+      "name": "กล่องคุกกี้ 5 ชิ้น 200ชิ้นx1",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 200,
+      "newPriceExVat": 420.0,
+      "status": "CHANGED",
+      "deltaPct": -0.244604316546763
+    },
+    {
+      "code": "922290",
+      "name": "ถุงIPPA ARO GOLD8.5\"x12.5\"x1000x1",
+      "class": "68",
+      "priceUom": "แพ็ค",
+      "packSize": 1000,
+      "newPriceExVat": 799.18,
+      "status": "CHANGED",
+      "deltaPct": -0.350260162601626
+    },
+    {
+      "code": "922291",
+      "name": "ถุง IPPA ARO GOLD 9\"x15.5\"x1000x1",
+      "class": "68",
+      "priceUom": "แพ็ค",
+      "packSize": 1000,
+      "newPriceExVat": 819.67,
+      "status": "CHANGED",
+      "deltaPct": -0.388305970149254
+    },
+    {
+      "code": "925386",
+      "name": "กล่องเบเกอรี่H6ฝาล็อคX1000ชิ้นX1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 1000,
+      "newPriceExVat": 1160.0,
+      "status": "CHANGED",
+      "deltaPct": -0.236842105263158
+    },
+    {
+      "code": "926716",
+      "name": "โบนัส น้ำมันพืช 1ล.  X 12(ยกลัง)",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 12000,
+      "newPriceExVat": 481.3,
+      "status": "CHANGED",
+      "deltaPct": -0.119673549418451
+    },
+    {
+      "code": "974289",
+      "name": "เนื้อมะพร้าวแช่แข็งแบบเส้น1กก.X1",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 1000,
+      "newPriceExVat": 131.9,
+      "status": "CHANGED",
+      "deltaPct": 0.336360661351619
+    },
+    {
+      "code": "155074",
+      "name": "คอร์นมิกซ์ 10กก.*1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 10,
+      "newPriceExVat": 1790.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "155110",
+      "name": "แป้งไรย์ชนิดละเอียด 5กก.*1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 5,
+      "newPriceExVat": 506.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "155112",
+      "name": "นันแดรี่วิปปิ้งครีม1000ซีซี*12",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 12,
+      "newPriceExVat": 1478.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "155191",
+      "name": "เรดดี้เจลนิวทรอล 12กระป๋อง*1กก.",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 12,
+      "newPriceExVat": 1082.4,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "155218",
+      "name": "เอสพีโกลด์ 20กก.*1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 20,
+      "newPriceExVat": 2230.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "197135",
+      "name": "สติ๊กเกอร์ขนมปังกระเทียมFZ2000ใบ",
+      "class": "68",
+      "priceUom": "ห่อ",
+      "packSize": 2000,
+      "newPriceExVat": 7000.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "205225",
+      "name": "แป้งสาลีโกลด์เด้นมิกซ์ 22.5 กก*1",
+      "class": "68",
+      "priceUom": "กระสอบ",
+      "packSize": 22.5,
+      "newPriceExVat": 748.6,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "230753",
+      "name": "ยูโรเปี้ยนมัฟฟิน มิกส์ 15กกX1",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 15,
+      "newPriceExVat": 1200.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "230760",
+      "name": "เชื้อเข้มข้นกลิ่นชอคโกแลต1กก.",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 1,
+      "newPriceExVat": 350.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "230761",
+      "name": "โคโค่มิกซ์1*10กก.",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 10,
+      "newPriceExVat": 1500.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "230806",
+      "name": "เชื้อกลิ่นเนยวานิลลา 1กก.",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 1,
+      "newPriceExVat": 650.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "230810",
+      "name": "เชื้อเข้มข้นกลิ่นกาแฟ1กก.",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 1,
+      "newPriceExVat": 1100.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "230851",
+      "name": "โอวาเล็ต 800 กรัมX1",
+      "class": "68",
+      "priceUom": "กระปุก",
+      "packSize": 0.8,
+      "newPriceExVat": 140.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "537212",
+      "name": "เนยขาวโอพีครีม 15กก.*1",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 15,
+      "newPriceExVat": 1215.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "802837",
+      "name": "ถุงขนมปังซันเบลสโฮลวีท960กX3000ใบ",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 3000,
+      "newPriceExVat": 6000.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "802838",
+      "name": "ถุงขนมปังซันเบลสโฮลวีท480กX5000ใบ",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 5000,
+      "newPriceExVat": 8750.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "802840",
+      "name": "ถุงขนมปังซันเบลส 480กX5000ใบ",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 5000,
+      "newPriceExVat": 8750.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "841172",
+      "name": "เนยขาวทอดโดนัท15 กก.(KV)ยกลัง",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 15,
+      "newPriceExVat": 960.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "855219",
+      "name": "มินิเค้กแฟนซีช็อกกานาช35กX48ชน.",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 48,
+      "newPriceExVat": 327.36,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "855221",
+      "name": "มินิเค้กคอฟฟี่คาราเมลอัลมอน30กX48",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 48,
+      "newPriceExVat": 327.36,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "855223",
+      "name": "มินิเค้กแฟนซีแยมการ์ตูน30กX48ชน.",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 48,
+      "newPriceExVat": 297.6,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "900023",
+      "name": "อีซี่ ซอฟท์ เมลติ้ง 10 กก. X 1ถุง",
+      "class": "68",
+      "priceUom": "กระสอบ",
+      "packSize": 10,
+      "newPriceExVat": 1920.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "901013",
+      "name": "สโนว์ไลน์ เอส 11 1 กกX2ถุง",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 2,
+      "newPriceExVat": 280.0,
+      "status": "NEW",
+      "deltaPct": null
+    },
+    {
+      "code": "109830",
+      "name": "คนอร์ พิซซ่าซอส 1000ก.X1",
+      "class": "-",
+      "priceUom": "ถุง",
+      "packSize": 1000,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "121586",
+      "name": "เซพแพ็คสวีทเบเกอรีมายองเนส1000กX1",
+      "class": "-",
+      "priceUom": "ถุง",
+      "packSize": 1000,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "198368",
+      "name": "ARO ไข่ไก่ เบอร์ 2 มีฝา 30 ฟอง",
+      "class": "-",
+      "priceUom": "แผง",
+      "packSize": 30,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "202995",
+      "name": "ลิน น้ำตาลไอซิ่ง900กรัม*1",
+      "class": "-",
+      "priceUom": "ถุง",
+      "packSize": 900,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "668317",
+      "name": "เอโร่เกลือเสริมไอโอดีน 5กก.X1ถุง",
+      "class": "-",
+      "priceUom": "กระสอบ",
+      "packSize": 5000,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "800659",
+      "name": "ฟอลคอน นมข้นจืด 1000มล.X12",
+      "class": "-",
+      "priceUom": "ลัง",
+      "packSize": 12,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "805241",
+      "name": "ไวท์เบอร์เกอร์สไลด์โพรเซสชีสX1",
+      "class": "-",
+      "priceUom": "แพ็ค",
+      "packSize": 980,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "837643",
+      "name": "AROแป้งข้าวโพด 1000ก*1",
+      "class": "-",
+      "priceUom": "ถุง",
+      "packSize": 1000,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "864201",
+      "name": "ตราเอโร่ น้ำส้มสายชูฯ 5% 4500มลX1",
+      "class": "-",
+      "priceUom": "ชิ้น",
+      "packSize": 4500,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": -1
+    },
+    {
+      "code": "106901",
+      "name": "RM_อิมพีเรียลเรดดี้เจลนิวทรอล1กก.",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 1000,
+      "newPriceExVat": 90.2,
+      "status": "UNCHANGED",
+      "deltaPct": 4.10216383599897e-05
+    },
+    {
+      "code": "111418",
+      "name": "พายกะหรี่ไก่90กรัม*50ชิ้น",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 50,
+      "newPriceExVat": 575.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "111419",
+      "name": "พายสับปะรด85กรัมX50ชิ้น",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 50,
+      "newPriceExVat": 575.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "112057",
+      "name": "หมูหยองหมูผสมไก่สูตรสีเข้ม1กก.X5",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 5,
+      "newPriceExVat": 1100.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "117886",
+      "name": "มินิครัวซองต์20ก.X360ชิ้น",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 360,
+      "newPriceExVat": 1260.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "133352",
+      "name": "ขนมเปี๊ยะไส้ถั่ว45ก.*120ชิ้น",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 120,
+      "newPriceExVat": 480.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "141305",
+      "name": "พายทูน่า85ก.*50 ชิ้น",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 50,
+      "newPriceExVat": 589.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "143737",
+      "name": "ขนมเปี๊ยะไส้ถั่วเค็ม45ก.*120ชิ้น",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 120,
+      "newPriceExVat": 480.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "154813",
+      "name": "KRAFTKORN MIX 1*10KG.",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 10000,
+      "newPriceExVat": 1680.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "162408",
+      "name": "เดนิชแผ่น10'X20\"(20แผ่น)",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 20,
+      "newPriceExVat": 1380.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "163374",
+      "name": "เดนิชสับปะรด(มือเสือ)43กX100ช",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 100,
+      "newPriceExVat": 520.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "163376",
+      "name": "เดนิชลูกเกด45ก.*100",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 100,
+      "newPriceExVat": 520.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "163379",
+      "name": "เดนิชอัลมอนด์ดีไลท์45ก.*100",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 100,
+      "newPriceExVat": 520.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "163385",
+      "name": "ชอคโกแลตชิพสติ๊ก45ก.*100",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 100,
+      "newPriceExVat": 520.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "165463",
+      "name": "ครัวซองต์เนยสด50 ก.X180ชิ้น",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 180,
+      "newPriceExVat": 1700.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "182866",
+      "name": "เบคกิ้งโซดาตราเบสท์โอเดอร์500ก*1",
+      "class": "-",
+      "priceUom": "แพ็ค",
+      "packSize": 500,
+      "newPriceExVat": 26.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "190398",
+      "name": "RM_คุกกี้ช็อกชิพเฮอร์ชีส์35กx80ช",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 80,
+      "newPriceExVat": 1360.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "195653",
+      "name": "กล่องใส่เค้ก 1*25 ชิ้น",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 25,
+      "newPriceExVat": 428.2,
+      "status": "UNCHANGED",
+      "deltaPct": 8.64089671017876e-06
+    },
+    {
+      "code": "198311",
+      "name": "เบคซอฟท์เบรดพรีมิกซ์10กก*1",
+      "class": "68",
+      "priceUom": "กระสอบ",
+      "packSize": 10000,
+      "newPriceExVat": 950.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "198389",
+      "name": "สติ๊กเกอร์สายคาดชีตทาร์ต1500ช.X1",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 1500,
+      "newPriceExVat": 1350.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "198696",
+      "name": "เนยขาว ตรา แกรนด์ 15 กก.X1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 15000,
+      "newPriceExVat": 1041.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "226346",
+      "name": "บรักกิ้มานยีสต์น้ำตาล10กก",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 10000,
+      "newPriceExVat": 1525.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "227848",
+      "name": "แป้งไดบาเก็ต10%  25กกX1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 25000,
+      "newPriceExVat": 5860.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "230754",
+      "name": "กล่องใส่เค้ก1X50ชิ้น (ลดครึ่งยาว)",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 50,
+      "newPriceExVat": 635.2,
+      "status": "UNCHANGED",
+      "deltaPct": 5.82497095794545e-06
+    },
+    {
+      "code": "230809",
+      "name": "แป้งวีทบรานแซนด์วิช1*10กก.",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 10000,
+      "newPriceExVat": 750.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "234916",
+      "name": "เชื้อกลิ่นวนิลา1กก",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 1000,
+      "newPriceExVat": 700.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "281556",
+      "name": "RM_สติ๊กเกอร์เฟรช 1000 ชิ้น x 1",
+      "class": "78",
+      "priceUom": "กล่อง",
+      "packSize": 1000,
+      "newPriceExVat": 350.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "316825",
+      "name": "เพรสซิเด้นท์ครีมชีส 2 กก. X 1",
+      "class": "68",
+      "priceUom": "ก้อน",
+      "packSize": 1880,
+      "newPriceExVat": 400.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "317649",
+      "name": "RM_คุกกี้ช็อกโกแลตชิพ45 ก.x80ชx1",
+      "class": "78",
+      "priceUom": "กล่อง",
+      "packSize": 80,
+      "newPriceExVat": 880.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "326124",
+      "name": "ถาดฟอยล์สีเงิน 4576I 400ชิ้นX 1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 400,
+      "newPriceExVat": 3600.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "344085",
+      "name": "RM_สติ๊กเกอร์คุกกี้เฮอร์ชีส์300ชน",
+      "class": "78",
+      "priceUom": "กล่อง",
+      "packSize": 300,
+      "newPriceExVat": 1200.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "358213",
+      "name": "RM_สติ๊กเกอร์ครัวซองต์300ชิ้นx1",
+      "class": "78",
+      "priceUom": "กล่อง",
+      "packSize": 300,
+      "newPriceExVat": 150.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "358619",
+      "name": "RM_ครัวซองต์ผสมลูกเกด90กx60ชx1",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 60,
+      "newPriceExVat": 1200.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "369481",
+      "name": "RM_สายคาดคุกกี้เชฟพลอย200ชิ้นx1",
+      "class": "78",
+      "priceUom": "กล่อง",
+      "packSize": 200,
+      "newPriceExVat": 190.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "602234",
+      "name": "ไชน์โรดชีสฟิลลิ่ง1กก.X12 กล่องX1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 12,
+      "newPriceExVat": 2700.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "741756",
+      "name": "อัลมอนด์สไลซ์ 11.34 กก. x 1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 11340,
+      "newPriceExVat": 3200.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "802110",
+      "name": "ถุงขนมปังฝรั่งเศส 1X1000 ใบ",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 1000,
+      "newPriceExVat": 3000.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "802111",
+      "name": "ถุงขนมปังยุโรป 1X1000 ใบ",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 1000,
+      "newPriceExVat": 2920.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "802839",
+      "name": "ถุงขนมปังซันเบลส 960กX3000ใบ",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 3000,
+      "newPriceExVat": 6000.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "815050",
+      "name": "เอโร่ทาร์ตไข่เหลว FZ 850X1",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 850,
+      "newPriceExVat": 107.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "818483",
+      "name": "ฟอนเทียร่านมผงเต็มไขมัน 25กก",
+      "class": "68",
+      "priceUom": "กระสอบ",
+      "packSize": 25000,
+      "newPriceExVat": 4430.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "823099",
+      "name": "อลาวรี่ซอล์ทเต็ดบัตเตอร์เบลนด์5กก",
+      "class": "68",
+      "priceUom": "ชิ้น",
+      "packSize": 5000,
+      "newPriceExVat": 789.23,
+      "status": "UNCHANGED",
+      "deltaPct": -4.5613871482484e-06
+    },
+    {
+      "code": "835371",
+      "name": "อินโนว่าครัวซองต์โฮลวีท48กX90ชิ้น",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 90,
+      "newPriceExVat": 866.7,
+      "status": "UNCHANGED",
+      "deltaPct": -1.03842052085264e-06
+    },
+    {
+      "code": "837805",
+      "name": "INNOแผ่นแป้งPZหวานแช่แข็ง100กX40ช",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 40,
+      "newPriceExVat": 415.6,
+      "status": "UNCHANGED",
+      "deltaPct": 4.57172446176884e-06
+    },
+    {
+      "code": "839465",
+      "name": "ถาดฟอยล์#4573(รวมตัว+ฝา)1X600ชิ้น",
+      "class": "68",
+      "priceUom": "กล่อง",
+      "packSize": 600,
+      "newPriceExVat": 3600.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "850108",
+      "name": "วนิลาเอแคลร์ฟิลลิ่ง 1 กก X 1 ถุง",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 1000,
+      "newPriceExVat": 85.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "852624",
+      "name": "น้ำตาลทรายขาวบริสุทธิ์KBS 25กก.X1",
+      "class": "68",
+      "priceUom": "กระสอบ",
+      "packSize": 25000,
+      "newPriceExVat": 602.6,
+      "status": "UNCHANGED",
+      "deltaPct": 3.15301359227287e-06
+    },
+    {
+      "code": "858626",
+      "name": "มอสซาเรล่าชีสเส้น 1 กกX 6",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 6000,
+      "newPriceExVat": 1519.5,
+      "status": "UNCHANGED",
+      "deltaPct": -3.09311317033575e-06
+    },
+    {
+      "code": "859995",
+      "name": "ยีสต์ผงบรักกี้มาน(ฟ้า) 500 ก. X20",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 10000,
+      "newPriceExVat": 1575.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "859997",
+      "name": "กระทงกระดาษขาว NO3219A 1X16000ชน",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 6000,
+      "newPriceExVat": 1120.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "891040",
+      "name": "ไส้กรอกไก่เวียนนา1000ก(50ชิ้น)",
+      "class": "68",
+      "priceUom": "ถุง",
+      "packSize": 50,
+      "newPriceExVat": 95.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "907335",
+      "name": "คาราเมลซอส FZ 1 กก. X 5 ถุง",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 5000,
+      "newPriceExVat": 1250.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "911979",
+      "name": "โดจ์เดนิชไก่หยองก้นหอย45*100",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 100,
+      "newPriceExVat": 505.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "922164",
+      "name": "ถุงขนมปังARO GOLD9.5\"X17.5\"1500ใบ",
+      "class": "68",
+      "priceUom": "แพ็ค",
+      "packSize": 1500,
+      "newPriceExVat": 1080.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "923862",
+      "name": "สารกันเชื้อราเบสท์โอเดอร์500ก.X1",
+      "class": "68",
+      "priceUom": "ชิ้น",
+      "packSize": 500,
+      "newPriceExVat": 72.83,
+      "status": "UNCHANGED",
+      "deltaPct": -2.47144791149321e-05
+    },
+    {
+      "code": "925514",
+      "name": "เนยเทียม ตราแซมซั่นโกลด์ 15 กกx1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 15000,
+      "newPriceExVat": 885.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "927461",
+      "name": "ชาไทยฟิลลิ่ง 1 กก. X 10",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 10,
+      "newPriceExVat": 1116.5,
+      "status": "UNCHANGED",
+      "deltaPct": 4.20960124055791e-06
+    },
+    {
+      "code": "929670",
+      "name": "FZมินิครัวซองต์โฮลวีท 20ก.x200ชX1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 200,
+      "newPriceExVat": 760.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "930223",
+      "name": "FZมินิพายสตรอเบอรี 25ก.X240ชX1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 240,
+      "newPriceExVat": 900.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "930225",
+      "name": "FZมินิพายแยมสับปะรด 25 ก.X240ชX1",
+      "class": "68",
+      "priceUom": "ลัง",
+      "packSize": 240,
+      "newPriceExVat": 900.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "982069",
+      "name": "โอคุนทาร์ตรูปดอกไม้30กX20ชX1พค",
+      "class": "68",
+      "priceUom": "แพ็ค",
+      "packSize": 20,
+      "newPriceExVat": 140.0,
+      "status": "UNCHANGED",
+      "deltaPct": 0
+    },
+    {
+      "code": "106732",
+      "name": "พลาสเลย์ตรามือ 50กรัมX1",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "106818",
+      "name": "พริกไทยเกล็ดดำตรามือ 1กก.X1",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "113757",
+      "name": "ARO ถุงกระดาษน้ำตาล 13X21 ซม.",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "116018",
+      "name": "แม็กกาแรตสับปะรดแว่น565กX3",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "134447",
+      "name": "เอโร่ สลัดครีม 1 กก.",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "134544",
+      "name": "เอโร่ มายองเนส 1 กก.",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "140355",
+      "name": "เฟร้นซ์ สไปซี่มัสตาร์ด 340กรัมX1",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "169314",
+      "name": "เกล็ดขนมปัง Save pack",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "174476",
+      "name": "แม่ประนอม น้ำพริกเผา513กX2",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "191753",
+      "name": "AROปลาทูน่าในน้ำเกลือ185กX4",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "241755",
+      "name": "เอโร่ ซอสมะเขือเทศ 10กรัมx100ซอง",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "265784",
+      "name": "เอโร่ ซอสมะเขือเทศ 10กรัมx800ซอง",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "468182",
+      "name": "เซลารี่ (RPF) กก.ละ",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "547560",
+      "name": "เนสกาแฟ เรด คัพ 420 ก.",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "818279",
+      "name": "แครนเบอร์รี่แห้ง(เอโร่)1X1000ก.",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "818286",
+      "name": "แมคคาดาเมียร์ ARO 1X500 กรัม",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "818287",
+      "name": "วอลนัท (ตราเอโร่) 1X1000 กรัม",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "819965",
+      "name": "อัลมอนด์ผง (ตราเอโร่) 1X500 กรัม",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "830334",
+      "name": "งาดำ 500 กรัม",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "830335",
+      "name": "งาขาว 500 กรัม",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "831416",
+      "name": "CP ไข่แดงเค็มดิบ 25 ฟอง",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "833762",
+      "name": "นูเทลล่า เฮเซลนัทสเปรด 3กก.X1",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "851335",
+      "name": "เอโร่ข้าวโพดหวานแช่แข็ง 1กก",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "852367",
+      "name": "คิวพี มายองเนสศรีราชา 900 ก.",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "898808",
+      "name": "เอโร่ สาหร่ายตัดเส้น 100ก.X1",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "903344",
+      "name": "น้ำผึ้งเวชพงศ์760ซีซี*1",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "923317",
+      "name": "มะนาวเหลืองแพ็ค 4 ลูก",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "928402",
+      "name": "น้ำตาลโดนัท 2 กก. X 1",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "929798",
+      "name": "เอโร่ แซนวิชสเปรด1000 ก. X 1",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": null,
+      "status": "NO_PRICE",
+      "deltaPct": null
+    },
+    {
+      "code": "115101",
+      "name": "เอเวิร์ธ สวีสโรลมิลค์75กX48ชX2พX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1343.7908,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "117679",
+      "name": "ทองหล่อ ช็อกโกแลตเรนโบว์ไรซ์1กกX1",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 155.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "120131",
+      "name": "ไส้เผือก2กก.*5",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1180.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "120136",
+      "name": "ไส้สังขยา2กก.*5",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 770.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "120137",
+      "name": "ไส้ถั่วแดง2กก.*5",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 760.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "125583",
+      "name": "อิมพีเรียล ครีมมี่คัสตาร์ดผง 750ก",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 137.5,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "125787",
+      "name": "แฮมไก่ คลาสสิค1กก.X4",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 620.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "128947",
+      "name": "RM_โดขนมปังหวานแช่แข็ง30กX225ชนX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 603.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "136820",
+      "name": "อิมพีเรียล น้ำตาลไอซิ่ง 800 ก.",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 26.675,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "140308",
+      "name": "RM_กล่องฝาพับ(MAK11)140ชิ้น X 1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1400.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "141425",
+      "name": "กาลิคสเปรด1000*6",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 820.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "150645",
+      "name": "เชอร์รี่เยลลี่ บอลสีแดง 55 ลูกX1",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 27.18,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "154796",
+      "name": "ถุงบีบซีลอัลตร้า18นิ้ว สีฟ้า",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 2500.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "161247",
+      "name": "ขนมเปี๊ยะทุเรียน 35ก.X120ชิ้น",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 510.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "163372",
+      "name": "เดนิชชอคโกแลต(มือเสือ)43ก.*100",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 520.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "183167",
+      "name": "ทิวลิป ผงโกโก้สีน้ำตาล 440ก. X 2",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 303.09,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "183192",
+      "name": "RM_โดว์มัฟฟินช็อกโกแลต1กกx5ถx1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 590.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "183443",
+      "name": "BF ฟิลลิ่งแอลซีสตรอเบอร์รี่ 900ก.",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 38.84,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "183444",
+      "name": "BF ฟิลลิ่งวานิลลา 900ก.",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 40.315,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "183452",
+      "name": "BF ฟิลลิ่งบลูเบอร์รี่ 900ก.",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 40.315,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "183472",
+      "name": "BF ฟิลลิ่งคัสตาร์ดใบเตย 900ก.",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 40.315,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "200667",
+      "name": "กระดาษรองอบ 40*60 ซม.",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1350.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "200669",
+      "name": "กระดาษลอกลาย 30\"*20\"",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 930.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "213860",
+      "name": "เอโร่เปลือกทาร์ตFZ18ชนX16",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 716.6124,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "225705",
+      "name": "RM_สายคาดสวิสมิลค์โรล 300 ชิ้น X1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 600.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "229362",
+      "name": "สติ๊กเกอร์อัลมอนด์ดีไลท์500 ช.x1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 460.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "271038",
+      "name": "RM_ถั่วกรอบแก้วแช่แข็ง1กก.x6ถุงx1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1200.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "278504",
+      "name": "RM_เค้กไข่ลูกเกด 25 ก.x54 ชิ้นx1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 297.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "297836",
+      "name": "RM_สติ๊กเกอร์วานิลาเครปเค้ก300ชX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 150.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "298016",
+      "name": "ถาดฟอยล์(เซ็ตถาด,ฝา)6303-I 400ชน",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 2640.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "308634",
+      "name": "สติ๊กเกอร์สายคาดชิโอะปัง 500ชน.x1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 325.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "328980",
+      "name": "RM_ถุงขนมปังบริยอช 30 ชิ้น x 1",
+      "class": "78",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 162.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "332308",
+      "name": "กล่อง SNACK BOX 300 ใบ x 1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 720.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "334569",
+      "name": "RM_กล่องฝาพับ ใหญ่ 140ชิ้นX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1904.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "361095",
+      "name": "RM_กล่องทาร์ต4ชิ้น(MAK13) 200ชx1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1000.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "366684",
+      "name": "RM_เฮอร์ชีส์เซมิสวีท285กx12พ",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1966.44,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "374542",
+      "name": "RM_สติ๊กเกอร์คาราเมลเครป300ชx1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 150.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "377405",
+      "name": "RM_สายคาดทาร์ตไข่เค็ม200ชิ้นx1",
+      "class": "78",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 250.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "382068",
+      "name": "สติ๊กเกอร์กล้วยหอมนูเทลล่า1500ชน",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 450.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "389459",
+      "name": "RM_โดว์มัฟฟินวนิลลา1กกx5ถx1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 590.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "390743",
+      "name": "RM_อะพิโตช็อกโกแลตอิมัลโก550ก.x1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 180.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "393237",
+      "name": "RM_สายคาดโรลรวมรส 300 ชิ้น x1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 735.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "603090",
+      "name": "เอเวิร์ธ สวีสโรลกาแฟ75กX48ชนX2พX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1519.281,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "603747",
+      "name": "RM_กล่องพาย 4 ชิ้น PA01R 300ชุดX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 870.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "633574",
+      "name": "RM_น้ำพริกเผาไทย 1 กก. x 1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 185.05,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "649807",
+      "name": "ถุงกระดาษคราฟสีขาว 300 ใบ x1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1050.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "650348",
+      "name": "RM_เชดด้าชีสชนิดเส้นสีส้ม 1กก.X6",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1200.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "653692",
+      "name": "RM_บาสก์ชีสเค้ก 495ก.x6ชิ้นx1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1200.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "654896",
+      "name": "RM_โดขนมปังหวานแช่แข็ง 50กx120ชx1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 531.6,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "675077",
+      "name": "กระทงฟอยล์ F-3330 3000 ชิ้น X1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1320.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "688547",
+      "name": "โดว์ชิโอะปังแช่แข็ง65ก.x72ชิ้นX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1044.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "689511",
+      "name": "RM_กล่องเครปเค้ก 3ชิ้น 500ชุดX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1760.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "697228",
+      "name": "บุชเชอร์ รอยเชอร์เวิร์สท 1000ก.X1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 160.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "699034",
+      "name": "RM_วิปปิ้งครีม 950 มล.X6ชิ้นX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1260.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "709101",
+      "name": "RM_กล่องกลาง  PT1H2A 200 ชุด X 1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 930.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "719946",
+      "name": "RM_ถาดฟอยล์4428Pสีเงิน 200 ชิ้นX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1800.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "726624",
+      "name": "ถาดฟอยล์4575-I(เซ็ตถาด,ฝา)200ชนx1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1400.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "738544",
+      "name": "RM_กล่องบาร์สเบิร์นMAK08 120ชุดX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1926.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "751608",
+      "name": "สติ๊กเกอร์บลูเบอรี่ชีส1500ช.X1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 450.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "757837",
+      "name": "สายคาดหมูหยองคัสตาร์ดไข่เค็ม500ช",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 405.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "765546",
+      "name": "สายคาดขนมปังใบเตยมะพร้าว 500 ชX 1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 705.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "779593",
+      "name": "RM_สติ๊กเกอร์ปังไส้กรอก 300 ชิ้น",
+      "class": "78",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 300.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "792831",
+      "name": "RM_สายคาดสวิสคอฟฟี่โรล 300ชิ้นX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 600.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "817220",
+      "name": "โดนัทวงแหวนแช่แข็ง40กX80",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 400.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "817221",
+      "name": "โดนัทเกลียวแช่แข็ง40กX90",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 450.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "821642",
+      "name": "ดาร์คช็อคคูเวอเจอร์ 57.7% 2.5 กก.",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 843.75,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "823075",
+      "name": "เค้กโรลรวมรส 30กรัมX42",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 227.64,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "825296",
+      "name": "แฟนซีคาร์ฟ แบะแซกลูโคสไซรัป 1 กก.",
+      "class": "-",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 33.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "844642",
+      "name": "สมอลเซียบัตต้า(ขนมปัง)40กX108ชิ้น",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 480.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "844643",
+      "name": "สมอลฟาร์มเมอร์โรล40กX120ชิ้น",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 533.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "844644",
+      "name": "ขนมปังฝรั่งเศสขนาดเล็ก40กX120ชิ้น",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 528.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "844645",
+      "name": "มัลติเกรนเบรดขนมปังธัญพืช350กX12ช",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 666.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "844646",
+      "name": "เซียบัตต้าแซนด์วิช110กX40ชิ้น",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 500.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "844776",
+      "name": "ขนมปังหวาน40กรัมX144ชิ้น",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 432.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "860323",
+      "name": "ขนมปังสังขยา 80ก 12 ชิ้น X 6 ถุง",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 950.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "860325",
+      "name": "ขนมปังเบคอนผักโขม 60ก 12ช X 6ถุง",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1250.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "860326",
+      "name": "ขนมปังหวานแช่แข็ง 60กรัม X 90ชิ้น",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 395.1,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "860328",
+      "name": "โดจ์พายสังขยามะพร้าวอ่อน 85กX40ชน",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 380.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "868629",
+      "name": "กระทงฟอยส์สีเงิน 500 X 6 แพ็ค",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1059.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "868630",
+      "name": "ไส้กรอกไก่หนังกรอบBKP1000กX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 130.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "875862",
+      "name": "RM_กล่องเค้กโรล 8 ชิ้น 200ชุดX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1270.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "880861",
+      "name": "โดนัทกลมแช่แข็ง 30 ก.X180ชิ้นX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 693.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "891374",
+      "name": "เดนิชเบรดช็อคโกแลตFZ360ก 10ชX2ถุง",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 760.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "893883",
+      "name": "ครัวซองต์เนยสดแช่แข็ง70กX60ช",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1513.8,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "896681",
+      "name": "ถาดฟอยล์#3416-P(รวมตัว+ฝา)1X200ชน",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1600.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "900823",
+      "name": "เทรดดิชั่นนอลเฟรนช์บาแก็ต 280กX30",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1071.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "900825",
+      "name": "ซาวโดวจ์ มัลติเกรน เบรด 340 กX 30",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1590.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "900831",
+      "name": "เพน ทาดิชั่น 340กX 30",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1224.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "905775",
+      "name": "แผ่นOPPรองถาดขนม400X450มม.1000ใบ",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 3000.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "905783",
+      "name": "แผ่นครัวซองต์สี่เหลี่ยมFZ1000กX10",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 3550.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "905797",
+      "name": "เลอแกลเนยแล็คติกชนิดจืด 10กกX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 5267.6,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "905802",
+      "name": "อลาวรี่มิกซ์โฟรชีส 1 กกX6",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1185.21,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "911980",
+      "name": "เดนิชไส้กรอกมือเสือแช่แข็ง48*75",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 540.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "912758",
+      "name": "แผ่นครัวซองตเนยสดแช่แข็ง10X20นิ้ว",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1960.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "915055",
+      "name": "ลาฟรุ้ตต้าบลูเบอร์รี 6กก.X1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1390.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "916269",
+      "name": "โคลเจลลี่ 7 กิโลกรัม",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 805.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "916924",
+      "name": "ถุงกระดาษคราฟสีน้ำตาล 6X50PCS",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1584.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "918747",
+      "name": "ฮอกไกโดมิลค์ฟิลลิ่ง 1 กกX10ถุง",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1013.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "918748",
+      "name": "โดจ์ครัวซองต์เนยสดแช่แข็ง20กX200ช",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 760.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "919754",
+      "name": "หมูหยองเบเกอรี่(หมูไก่) 1กก.x5",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 600.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "920292",
+      "name": "แผ่นแป้งสามเหลี่ยม FZ 30 กX240ช",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1830.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "921129",
+      "name": "กล่องขนมปัง 4 ชิ้น 100 X1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 470.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "922115",
+      "name": "เชดด้าชีส81สไลซ์Naked 1กกX1แพ็ค",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 324.8,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "922117",
+      "name": "โดจ์ครัวซองต์เนยสดแช่แข็ง50กX100ช",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 880.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "922252",
+      "name": "ถาด6ช่องเล็ก PS ดำ+ฝาPET250PCS X1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 400.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "922289",
+      "name": "ถุงIPP ARO GOLD 5.5\"x14.5\"x1000x1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 788.93,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923479",
+      "name": "ถั่วแดงกวนบดหยาบสำหรับโอฮากิ1x10",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 700.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923480",
+      "name": "ไส้ขนมรสวนิลา x 10",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1400.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923688",
+      "name": "ขนมปังโฮลวีทแช่แข็ง 720กX 15",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1350.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923689",
+      "name": "ขนมปังซาวโดว์ดาร์กไรย์ 340กX 30",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1650.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923690",
+      "name": "ขนมปังเซียบัตต้า 110กX 60",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 780.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923691",
+      "name": "ขนมปังวอลนัทแช่แข็ง 330กX 30",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 2100.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923745",
+      "name": "ARO เนื้อปูเทียม 1กกx10",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1110.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923858",
+      "name": "สีผสมอาหารเบสโอเดอแดงสตรอ450มล",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 89.58,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923859",
+      "name": "สีเหลืองไข่ เบสท์โอเดอร์ 450มล",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 89.58,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923860",
+      "name": "สีเขียวแก่ เบสท์โอเดอร์ 450มล",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 89.58,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923861",
+      "name": "สีม่วงเบสท์โอเดอร์ 450 มล.",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 89.58,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923863",
+      "name": "กลิ่นมะลิ เบสท์โอเดอร์ 450 มล.",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 89.58,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "923864",
+      "name": "กล่องใหญ่พรีเมียม X 50 ใบ",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 760.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "924802",
+      "name": "ซอสมะเขือเทศเอโร่ 1กก.x12",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 252.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "924803",
+      "name": "สีส้ม เบสท์โอเตอร์ 450มล",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 89.58,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "925510",
+      "name": "มินิเค้กช็อกโกแลต 15 กx 45ช x1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 229.5,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "925511",
+      "name": "มินิเค้กรสวานิลลา 15 ก X 45ช x1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 229.5,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "925513",
+      "name": "ช็อกโกแลตเฮเซลนัทฟิลลิ่ง1กกx10x1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1924.1,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "925515",
+      "name": "สติ๊กเกอร์ AROสายคาดแดง3000ชน X1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 2040.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "927095",
+      "name": "ปูอัดเส้นแช่แข็ง 1 กก.X 10ถุง X 1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1110.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "927098",
+      "name": "สติ๊กเกอร์ครัวซองต์3000ช X 1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 450.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "927368",
+      "name": "โอวาเล็ต 5 กก. X1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 825.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "927369",
+      "name": "กล่องมัฟฟิ่น  MAK92 150 ชุด X 1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 495.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "927370",
+      "name": "กล่องเบเกอรี่  MAK54 200 ชุด X 1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 540.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "928469",
+      "name": "กล่องเค้กโรล  PT1H2C 150 ชุด X 1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 465.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "928471",
+      "name": "โดซองต์แช่แข็ง 25 ก. X120 ชิ้น X1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 402.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "929671",
+      "name": "เดนิชไส้กรอกไก่แช่แข็ง130กX40ชX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1200.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "930789",
+      "name": "กระดาษตัด 16X10 cm 500แผ่น X6แพ็ค",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 390.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "932630",
+      "name": "สติ๊กเกอร์เค้กกล้วยหอม1500ช.X1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 450.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "933174",
+      "name": "ขนมปังฟอคคาเชียมะกอกดำ 100กX30ชX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 660.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "933175",
+      "name": "ขนมปังฟอคคาเชีย 100 กX30 ชิ้นX 1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 480.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "933176",
+      "name": "ขนมปังดาร์กไรย์มอลต์ 300 กX30ชX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1020.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "933177",
+      "name": "ขนมปังธัญพืช 300 ก.X30ช.X1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 960.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "933178",
+      "name": "พายผีเสื้อเนยสดเเช่เเข็ง60กX80ชX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 1400.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "933179",
+      "name": "แดรีโกลด์พาร์มีซานชีสชนิดผง500กX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 309.58,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "942238",
+      "name": "RM_ขนมปังบริยอชแช่แข็ง135ก.x24ชx1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 672.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "957820",
+      "name": "หมูหยองหมูผสมไก่ตราเจ้าสัว1000ก.",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 401.65,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    },
+    {
+      "code": "973469",
+      "name": "RM_โดขนมปังหวานแช่แข็ง60กX100ชนX1",
+      "class": "68",
+      "priceUom": null,
+      "packSize": null,
+      "newPriceExVat": 528.0,
+      "status": "NOT_COUNTABLE",
+      "deltaPct": null
+    }
+  ]
+}

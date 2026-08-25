@@ -2740,6 +2740,7 @@ function buildManageItemsView(C) {
           <button class="btn btn-blue" onclick="showAddItemModal()">➕ เพิ่มสินค้า</button>
           <button class="btn btn-secondary btn-sm" onclick="showMasterCostMigrationModal()">📥 ย้ายราคาจาก master_cost.json</button>
           <button class="btn btn-secondary btn-sm" onclick="showBasisBackfillModal()">🏷️ ตั้งฐาน VAT ย้อนหลัง (T8a)</button>
+          <button class="btn btn-blue btn-sm" onclick="showAugustPriceImportModal()">📥 นำเข้าราคา ส.ค. 69 (T8a)</button>
           <button class="btn btn-secondary btn-sm" onclick="renderManageItems()">🔄 รีเฟรช</button>
         </div>
       </div>
@@ -3138,6 +3139,212 @@ async function doBasisBackfill(){
   closeModal();
   await saveMasterItems(newItems, `ตั้งฐาน VAT ย้อนหลังแล้ว ${toBackfill.length} รายการ (รวม VAT) ✅`);
   await dbPush('logs', { no:'admin', name:(SES && SES.name) || 'admin', ts:Date.now(), action:'priceBasisBackfill', source:'admin-override', count: toBackfill.length });
+}
+
+/* ════════════════════════════════════════════
+   [T8a — Step 2] One-off August 2026 price import (Code 206 Bakery, EX VAT)
+   Ticket 8a — narrowed one-off, NOT the recurring import mechanism (that's Ticket 8).
+   Source: docs/price_import_2026-08.json, a committed extract of
+   docs/Bakery_Price_Import_2026-08_FILLED.xlsx (tools/extract_price_import.py). Only
+   columns A (Code) and K (New Price EX VAT) are imported, per the brief — every other
+   extracted field here is context for the preview, never written to Firebase.
+   Routes by Status ONLY (column M) — never by the sheet's own Countable/In Item Master
+   columns, which were computed against data.json (stale) rather than this repo's live
+   master_uom.json. The preview below recomputes countability from the LIVE master and
+   reports every row where the sheet and the live master disagree — reviewed, not silently
+   included or excluded (see the reconciliation field).
+   NO PRICE rows get an explicit priceStatus:'NO_CONFIRMED_PRICE' sentinel — never null'd
+   silently, which would leave estCostOf() falling back to master_cost.json's stale IN VAT
+   number (guarded in estCostOf(), see its comment).
+════════════════════════════════════════════ */
+let AUGUST_PRICE_IMPORT_DATA = null;
+async function loadAugustPriceImportData(){
+  if(AUGUST_PRICE_IMPORT_DATA) return AUGUST_PRICE_IMPORT_DATA;
+  const res = await fetch('docs/price_import_2026-08.json');
+  if(!res.ok) throw new Error('โหลด price_import_2026-08.json ไม่สำเร็จ (' + res.status + ')');
+  AUGUST_PRICE_IMPORT_DATA = await res.json();
+  return AUGUST_PRICE_IMPORT_DATA;
+}
+
+function computeAugustPriceImportPreview(importData){
+  const rows = importData.rows;
+  const exp = importData.expected;
+  // Re-verify the committed extract's own numbers at run time too — not just at generation
+  // time — so a hand-edited or stale JSON file can never quietly diverge from what it claims.
+  const countErrors = [];
+  const assertCount = (name, got, want) => { if(got !== want) countErrors.push(`${name}: ${got} ≠ ${want}`); };
+  assertCount('total_rows', rows.length, exp.total_rows);
+  assertCount('changed', rows.filter(r=>r.status==='CHANGED').length, exp.changed);
+  assertCount('unchanged', rows.filter(r=>r.status==='UNCHANGED').length, exp.unchanged);
+  assertCount('new', rows.filter(r=>r.status==='NEW').length, exp.new);
+  assertCount('no_price', rows.filter(r=>r.status==='NO_PRICE').length, exp.no_price);
+  assertCount('not_countable', rows.filter(r=>r.status==='NOT_COUNTABLE').length, exp.not_countable);
+  assertCount('duplicate_codes', rows.length - new Set(rows.map(r=>r.code)).size, exp.duplicate_codes);
+
+  const itemByCodeMap = Object.fromEntries(ITEMS_DATA.map(it => [it.code, it]));
+  const toWrite = [], skippedNotCountable = [], skippedMissingFromMaster = [], validationErrors = [];
+
+  rows.forEach(r => {
+    if(r.status === 'NOT_COUNTABLE'){ skippedNotCountable.push(r); return; }
+    const item = itemByCodeMap[r.code];
+    // Sheet's "In Item Master" column was computed against data.json (stale, 366 items),
+    // not this repo's live masterData/items (338) — confirmed 25 Aug 2026, present for 24
+    // of the 38 NO_PRICE-status codes. None have a live master_uom.json entry either, so
+    // there is nowhere to write a status even if we wanted to — same disposition as
+    // NOT_COUNTABLE (never blocks the rest of the import), just reported under its own
+    // reason since it's a different root cause the Buyer should see separately.
+    if(!item){ skippedMissingFromMaster.push(r); return; }
+    if(r.status === 'NO_PRICE'){
+      toWrite.push({ code:r.code, name:r.name, status:r.status, action:'no_price' });
+      return;
+    }
+    // CHANGED / UNCHANGED / NEW — must resolve to a real, non-guessed price + unit
+    if(!(r.newPriceExVat > 0)){ validationErrors.push({ code:r.code, name:r.name, issue:`สถานะ ${r.status} แต่ไม่มีราคาที่ใช้ได้` }); return; }
+    const m = MASTER_UOM[r.code];
+    if(!m || !m.packtype){ validationErrors.push({ code:r.code, name:r.name, issue:'ไม่มี master_uom.json — ไม่เดาหน่วย' }); return; }
+    if(r.priceUom !== m.packtype){ validationErrors.push({ code:r.code, name:r.name, issue:`priceUom ในไฟล์ (${r.priceUom}) ไม่ตรงกับ master_uom.json (${m.packtype}) — ไม่เดา` }); return; }
+    toWrite.push({ code:r.code, name:r.name, status:r.status, action:'price', price:r.newPriceExVat, priceUom:r.priceUom });
+  });
+
+  // Reconciliation: rows the SHEET marked not-usable (NOT_COUNTABLE) that the LIVE master
+  // actually has a master_uom.json entry for — the 88-row discrepancy found during planning.
+  // Reported, never auto-included — Status-only routing (confirmed) leaves these skipped.
+  const reconciliation = skippedNotCountable
+    .filter(r => !!MASTER_UOM[r.code])
+    .map(r => ({ code:r.code, name:r.name }));
+
+  const writtenPriceCodes = new Set(toWrite.filter(w => w.action === 'price').map(w => w.code));
+  const currentInVatCount = ITEMS_DATA.filter(it => it.priceBasis === 'IN_VAT').length;
+  const projectedInVatAfter = ITEMS_DATA.filter(it => it.priceBasis === 'IN_VAT' && !writtenPriceCodes.has(it.code)).length;
+
+  const canWrite = countErrors.length === 0 && validationErrors.length === 0;
+
+  return {
+    canWrite, countErrors, toWrite, skippedNotCountable, skippedMissingFromMaster, validationErrors, reconciliation,
+    currentInVatCount, projectedInVatAfter,
+    beyond20pct: importData.beyond20pct, noPriceInSource: importData.noPriceInSource,
+    conflicts: importData.conflicts, sourceSha256: importData.sourceSha256, effectiveFrom: importData.effectiveFrom
+  };
+}
+
+async function showAugustPriceImportModal(){
+  let importData, preview;
+  try {
+    importData = await loadAugustPriceImportData();
+    preview = computeAugustPriceImportPreview(importData);
+  } catch(e){
+    showModal(`<h3>📥 นำเข้าราคาเดือน ส.ค. 69 (T8a)</h3><p style="color:var(--red);margin-top:10px">โหลด/ตรวจสอบไฟล์ไม่สำเร็จ: ${esc(e.message)}</p><div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+    return;
+  }
+  window.__t8a_august_preview = preview; // stashed for doAugustPriceImport() — never recomputed from a different state than what's shown here
+
+  const changedCount = preview.toWrite.filter(w=>w.status==='CHANGED').length;
+  const unchangedCount = preview.toWrite.filter(w=>w.status==='UNCHANGED').length;
+  const newCount = preview.toWrite.filter(w=>w.status==='NEW').length;
+  const noPriceCount = preview.toWrite.filter(w=>w.status==='NO_PRICE').length;
+
+  const errRows = preview.validationErrors.map(e=>`<tr><td class="code-cell">${esc(e.code)}</td><td>${esc(e.name)}</td><td style="color:var(--red)">${esc(e.issue)}</td></tr>`).join('');
+  const reconRows = preview.reconciliation.map(r=>`<tr><td class="code-cell">${esc(r.code)}</td><td>${esc(r.name)}</td></tr>`).join('');
+  const missingRows = preview.skippedMissingFromMaster.map(r=>`<tr><td class="code-cell">${esc(r.code)}</td><td>${esc(r.name)}</td></tr>`).join('');
+  const beyond20Rows = preview.beyond20pct.map(r=>`<tr><td class="code-cell">${esc(r.code)}</td><td>${esc(r.name)}</td><td>${esc(r.status)}</td><td class="tr num" style="color:${Math.abs(r.deltaPct)>=0.99?'var(--txt3)':'var(--warn)'}">${r.deltaPct!=null?(r.deltaPct*100).toFixed(1)+'%':'—'}</td></tr>`).join('');
+  const conflictRows = preview.conflicts.map(c=>`<tr><td class="code-cell">${esc(c.code)}</td><td>${esc(c.name)}</td><td class="tr num">${c.allStoresExVat}</td><td class="tr num">${c.looseExVat}</td><td>${esc(c.note)}</td></tr>`).join('');
+
+  showModal(`
+    <h3>📥 นำเข้าราคาเดือน ส.ค. 69 — Code 206 Bakery, EX VAT (T8a)</h3>
+    <p style="color:var(--txt2);margin-top:8px;font-size:12.5px">
+      แหล่งที่มา: <code>${esc(importData.source)}</code> (sha256 ${esc(preview.sourceSha256.slice(0,16))}…) · effectiveFrom ${esc(preview.effectiveFrom)}
+    </p>
+    ${!preview.canWrite ? `<div style="margin-top:10px;padding:10px 13px;background:var(--red-bg);border-radius:var(--r8);border:1px solid rgba(224,50,68,.3);color:var(--red);font-weight:700;font-size:13px">
+      ❌ ตรวจสอบไม่ผ่าน — จะไม่เขียนอะไรเลยจนกว่าจะแก้ไข (all-or-nothing)
+      ${preview.countErrors.length ? `<div style="font-weight:400;margin-top:4px;font-size:12px">${preview.countErrors.map(esc).join('<br>')}</div>` : ''}
+    </div>` : `<div style="margin-top:10px;padding:10px 13px;background:var(--green-bg);border-radius:var(--r8);border:1px solid rgba(13,159,110,.25);color:var(--green);font-weight:700;font-size:13px">✅ ตรวจสอบผ่านทั้งหมด — พร้อมเขียน</div>`}
+
+    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px">
+      <div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">CHANGED</div><div style="font-size:18px;font-weight:800">${changedCount}</div></div>
+      <div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">Unchanged</div><div style="font-size:18px;font-weight:800">${unchangedCount}</div></div>
+      <div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">NEW</div><div style="font-size:18px;font-weight:800">${newCount}</div></div>
+      <div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">NO PRICE</div><div style="font-size:18px;font-weight:800">${noPriceCount}</div></div>
+    </div>
+    <div style="margin-top:6px;font-size:12px;color:var(--txt3)">
+      ข้าม (Not countable) ${preview.skippedNotCountable.length} รายการ
+      ${preview.skippedMissingFromMaster.length ? ` · ข้าม (ไม่มีในรายการสินค้าจริง) ${preview.skippedMissingFromMaster.length} รายการ` : ''}
+      · รวมเขียน ${preview.toWrite.length} รายการ
+    </div>
+
+    ${preview.skippedMissingFromMaster.length ? `
+    <div style="margin-top:12px">
+      <div style="font-size:12.5px;font-weight:700;color:var(--warn)">⚠️ ${preview.skippedMissingFromMaster.length} รหัสที่ไฟล์ระบุว่า "อยู่ใน Item Master" (อ้างอิง data.json ซึ่งไม่ตรงกับฐานข้อมูลจริง) แต่ไม่มีอยู่จริงใน masterData/items หรือ master_uom.json ของระบบตอนนี้ — ไม่มีที่ให้เขียนสถานะ จึง<b>ข้าม</b>เหมือนกลุ่ม Not countable (ยืนยันแล้วว่าให้ข้าม ไม่ block การนำเข้าที่เหลือ)</div>
+      <div class="tbl-wrap" style="max-height:160px;margin-top:4px">
+        <table class="dtbl"><thead><tr><th>รหัส</th><th>ชื่อ</th></tr></thead><tbody>${missingRows}</tbody></table>
+      </div>
+    </div>` : ''}
+
+    ${preview.reconciliation.length ? `
+    <div style="margin-top:12px">
+      <div style="font-size:12.5px;font-weight:700;color:var(--warn)">⚠️ ${preview.reconciliation.length} รายการที่ไฟล์บอกว่า "Not countable" แต่ master_uom.json (live) มีจริง — ตาม Status-only routing ที่ยืนยันแล้ว จะ<b>ไม่เขียน</b>รายการเหล่านี้ ยังคงค้างเป็น IN_VAT</div>
+      <div class="tbl-wrap" style="max-height:140px;margin-top:4px">
+        <table class="dtbl"><thead><tr><th>รหัส</th><th>ชื่อ</th></tr></thead><tbody>${reconRows}</tbody></table>
+      </div>
+    </div>` : ''}
+
+    <div style="margin-top:12px">
+      <div style="font-size:12.5px;font-weight:700">📊 19 รายการที่ราคาขยับเกิน ±20%</div>
+      <div class="tbl-wrap" style="max-height:180px;margin-top:4px">
+        <table class="dtbl"><thead><tr><th>รหัส</th><th>ชื่อ</th><th>สถานะ</th><th class="tr">เปลี่ยน</th></tr></thead><tbody>${beyond20Rows}</tbody></table>
+      </div>
+      <div style="font-size:11px;color:var(--txt4);margin-top:3px">9 แถวที่แสดง -100% คือแถว NO PRICE ที่ไม่มีราคาใหม่ (คอลัมน์ K ว่าง) ไม่ใช่การเปลี่ยนราคาจริง</div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div style="font-size:12.5px;font-weight:700;color:var(--warn)">🏪 5 รหัสที่ราคาต่างกันระหว่างไฟล์ทุกสาขา vs. ไฟล์เฉพาะสาขา 2/17/57 (ยึดไฟล์ทุกสาขาเป็นค่าเดียว — ระบบมีราคาเดียวต่อสินค้า ไม่รองรับราคาต่อสาขา)</div>
+      <div class="tbl-wrap" style="max-height:140px;margin-top:4px">
+        <table class="dtbl"><thead><tr><th>รหัส</th><th>ชื่อ</th><th class="tr">ทุกสาขา</th><th class="tr">2/17/57</th><th>หมายเหตุ</th></tr></thead><tbody>${conflictRows}</tbody></table>
+      </div>
+    </div>
+
+    ${preview.validationErrors.length ? `
+    <div style="margin-top:12px">
+      <div style="font-size:12.5px;font-weight:700;color:var(--red)">❌ ${preview.validationErrors.length} รายการตรวจสอบไม่ผ่าน</div>
+      <div class="tbl-wrap" style="max-height:160px;margin-top:4px">
+        <table class="dtbl"><thead><tr><th>รหัส</th><th>ชื่อ</th><th>ปัญหา</th></tr></thead><tbody>${errRows}</tbody></table>
+      </div>
+    </div>` : ''}
+
+    <div style="margin-top:12px;padding:10px 13px;background:var(--surface2);border-radius:var(--r8);font-size:12.5px">
+      ฐาน IN_VAT ตอนนี้: <b>${preview.currentInVatCount}</b> รายการ → หลังนำเข้า (คาดการณ์): <b>${preview.projectedInVatAfter}</b> รายการ
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">ปิด (ยังไม่เขียน)</button>
+      ${preview.canWrite ? `<button class="btn btn-blue" onclick="doAugustPriceImport()">📥 ยืนยันนำเข้า (${preview.toWrite.length} รายการ)</button>` : ''}
+    </div>`);
+}
+
+async function doAugustPriceImport(){
+  const preview = window.__t8a_august_preview;
+  if(!preview || !preview.canWrite){ toast('ไม่มี preview ที่ตรวจสอบผ่าน — เปิดหน้าต่างนำเข้าใหม่', 'err'); return; }
+  const byCode = {};
+  preview.toWrite.forEach(w => {
+    if(w.action === 'price'){
+      byCode[w.code] = { price: w.price, priceUom: w.priceUom, priceBasis: 'EX_VAT', priceStatus: null, priceEffectiveFrom: preview.effectiveFrom, priceSource: 'code-206-2026-08' };
+    } else if(w.action === 'no_price'){
+      byCode[w.code] = { price: null, priceUom: null, priceBasis: null, priceStatus: 'NO_CONFIRMED_PRICE', priceEffectiveFrom: preview.effectiveFrom, priceSource: 'code-206-2026-08' };
+    }
+  });
+  const newItems = ITEMS_DATA.map(it => byCode[it.code] ? { ...it, ...byCode[it.code] } : it);
+  closeModal();
+  const changedCount = preview.toWrite.filter(w=>w.status==='CHANGED').length;
+  const unchangedCount = preview.toWrite.filter(w=>w.status==='UNCHANGED').length;
+  const newCount = preview.toWrite.filter(w=>w.status==='NEW').length;
+  const noPriceCount = preview.toWrite.filter(w=>w.status==='NO_PRICE').length;
+  await saveMasterItems(newItems, `นำเข้าราคาเดือน ส.ค. 69 แล้ว ${preview.toWrite.length} รายการ ✅`);
+  await dbPush('logs', {
+    no:'admin', name:(SES && SES.name) || 'admin', ts:Date.now(), action:'augustPriceImport', source:'excel-import',
+    written: preview.toWrite.length, changed: changedCount, unchanged: unchangedCount, new: newCount, noPrice: noPriceCount,
+    skippedNotCountable: preview.skippedNotCountable.length, skippedMissingFromMaster: preview.skippedMissingFromMaster.length,
+    sourceSha256: preview.sourceSha256
+  });
+  window.__t8a_august_preview = null;
 }
 
 /* ════════════════════════════════════════════
