@@ -81,7 +81,7 @@ Load-time validator (`scanItemMasterIssues`) in `loadData()` /
 ### T2 — outlier variance guard + admin exception queue (merged)
 Two-ratio check at save time: (a) qty vs. this store's own prior month
 (`totalBaseQty`, symmetric), (b) value vs. the network median for that item
-this month (one-directional). Either exceeding `OUTLIER_FACTOR` (10) requires
+this month (one-directional). Either exceeding `OUTLIER_FACTOR` (2) requires
 an explicit ticked confirmation before save; never auto-rejects.
 `totalBaseQty()` requires `pack_size != null` on **both** months before
 computing the qty ratio — carry this guard into any new code that touches
@@ -160,7 +160,7 @@ the list keeps the no-band count as its own number.
 `evalOutlier()` returned `flagged:false` both when a row passed both ratios and
 when neither ratio could be computed at all. Added a third field, `coverage`
 (`'full'` / `'partial'` / `'none'`), derived from whether each ratio is non-null.
-`flagged` semantics, `OUTLIER_FACTOR` (10), the never-auto-reject behaviour and
+`flagged` semantics, `OUTLIER_FACTOR` (2), the never-auto-reject behaviour and
 the `pack_size != null` guard on `totalBaseQty()` are all unchanged.
 **No-coverage deliberately does not set `flagged`** — that would put a
 confirmation modal in front of every item in its first month, train people to
@@ -449,6 +449,20 @@ not reopen them without a new instruction from the project owner.
   an admin logging in as that store, which the audit trail will attribute to the
   store, not to the admin. That is accepted for now. It is a known limitation of
   the decision, not an oversight in it.
+- **`OUTLIER_FACTOR` lowered 10× → 2×** per project owner decision (call, 25 Aug
+  2026), to catch anomalies earlier. Same change made in `packaging-count` the
+  same day. Known trade-off, flagged at the time and not yet resolved: at 2×
+  the guard will fire on ordinary variance — seasonal swings, delivery timing
+  around month-end — far more often than at 10×, which risks people learning to
+  tick through the confirmation and dulling the control on the rows where it
+  matters. Watch for this once live; if confirm-rate climbs, consider a
+  two-tier version (warn at 2×, hard-confirm at a higher threshold) rather than
+  reverting outright.
+- **`packaging-count` excluded stores 801 and 804 from counting on 25 Aug 2026**
+  (528 retained). Bakery has the same three store codes but was **not** asked
+  to make the same exclusion — this session was threshold-only. If bakery
+  should match, that's a separate decision and a separate ticket; bakery has no
+  exclusion mechanism today (see bakery's own T4 comment in `app.js`).
 
 ## What still blocks T8/T9
 
