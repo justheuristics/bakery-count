@@ -149,7 +149,7 @@ function setBtn(b,on,t='...'){if(!b)return;if(on){b._orig=b.innerHTML;b.innerHTM
 const DB_ROOT = '';
 /* ════ OUTLIER GUARD (T2) ════ — single tunable threshold, never auto-rejects,
    only requires an explicit confirmation before save. See computeOutlierFlag(). */
-const OUTLIER_FACTOR = 10;
+const OUTLIER_FACTOR = 2;
 async function dbGet(path){if(!fbOk)return null;try{const s=await db.ref(DB_ROOT+'/'+path).once('value');return s.val();}catch(e){console.error('dbGet:',path,e.message);return null;}}
 async function dbUpdate(obj){if(!fbOk)return;try{const prefixed={};for(const k in obj){prefixed[DB_ROOT+'/'+k]=obj[k];}await db.ref().update(prefixed);}catch(e){console.error('dbUpdate:',e.message);throw e;}}
 async function dbRemove(path){if(!fbOk)return;try{await db.ref(DB_ROOT+'/'+path).remove();}catch(e){throw e;}}
