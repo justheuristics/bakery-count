@@ -1,15 +1,17 @@
 # HANDOFF — Counting Apps action plan (bakery-count)
 
 This repo and its sibling `packaging-count` (`github.com/justheuristics/packaging-count`)
-are being worked through a 9-ticket action plan in order, one ticket per branch,
-one PR per ticket, merged before the next starts. **Read this whole file before
-starting T8 or T9** — it has the guardrails, the full ticket list, what's
-already done, and what's known to depart from the original plan doc.
+are being worked through a ticket-by-ticket action plan in order, one ticket per
+branch, one PR per ticket, merged before the next starts. **Read this whole file
+before starting T8, T9 or T11** — it has the guardrails, the full ticket list,
+what's already done, which questions are closed, and what's known to depart from
+the original plan doc.
 
 If you have the original plan doc (`CLAUDE_CODE_ACTION_PLAN_Counting_Apps.md`),
-this file summarizes it plus everything learned while implementing T1–T7 that
-the original doc got wrong or didn't anticipate — read this file's departures
+this file summarizes it plus everything learned while implementing T1–T7 and T10
+that the original doc got wrong or didn't anticipate — read this file's departures
 section even if you have the original, since some of its stated facts are stale.
+The original doc lists 9 tickets; T10 and T11 were added after it was written.
 
 ## Guardrails — apply to every ticket, not just the one you're on
 
@@ -41,8 +43,8 @@ section even if you have the original, since some of its stated facts are stale.
    these two reports get compared side by side. (T5's export in packaging is
    the one deliberate, documented exception — it has a column bakery lacks
    because this repo tracks data bakery doesn't.)
-8. **One commit per ticket, stop for review after each 🔴 P0 ticket** (T1/T2
-   already were; nothing left at that priority until T8/T9 unblock).
+8. **One commit per ticket, stop for review after each 🔴 P0 ticket** (T1, T2
+   and T10 all did; nothing left at that priority right now).
 9. **Consequential production writes (bulk migrations, anything touching
    every row of a live table) get an explicit human go-ahead before firing**,
    not just a passing test in demo mode. T6's migration was built, previewed,
@@ -60,11 +62,12 @@ section even if you have the original, since some of its stated facts are stale.
 | T5 | 🟢 P1 | Export store submission status to Excel (**packaging only** — bakery already had this) | N/A here — see packaging's `HANDOFF.md` |
 | T6 | 🟢 P1 | Price / priceUom / priceEffectiveFrom on bakery item master (**bakery only**) | ✅ merged ([#7](https://github.com/justheuristics/bakery-count/pull/7)) — migration run against production, 338/338 items priced |
 | T7 | 🟢 P1 | Align Thai calendar display (BE) across both apps | ✅ merged ([#8](https://github.com/justheuristics/bakery-count/pull/8)) |
-| T8 | 🟡 P2 | Price list bulk import with preview-diff-confirm | ⛔ **blocked** on open question Q3 (price-on-master restates prior months silently) |
-| T9 | 🟡 P2 | Stock-take Excel upload with validation gate | ⛔ **blocked** on open question Q4 (store-only vs. admin-on-behalf upload) |
+| T8 | 🟡 P2 | Price list bulk import with preview-diff-confirm | ⛔ **blocked** — see "What still blocks T8/T9" below (Q3 is decided; T11 is now its prerequisite) |
+| T9 | 🟡 P2 | Stock-take Excel upload with validation gate | ⛔ **blocked** — see "What still blocks T8/T9" below (Q4 is decided) |
+| T10 | 🔴 P0 | Admin-visible reference band + outlier no-coverage state | ✅ merged |
+| T11 | 🟡 P2 | Snapshot price onto the entry at save time (**prerequisite for T8**) | 📋 not started — design decided 25 Aug 2026, see Q3 below |
 
-T1–T7 are done in both repos. **Stopped here, as planned, to await Q3/Q4
-decisions before T8/T9.**
+T1–T7 and T10 are done in both repos.
 
 ## What's done
 
@@ -133,6 +136,42 @@ heading with a CE timestamp in the same file. Fixed to match. (Packaging's
 half — `thaiMonthLabel`/`thaiDate`/`fmtDateTime` — is in that repo's PR;
 both apps now render the same month as the same year.)
 
+### T10 — admin-visible reference band + outlier no-coverage state (merged)
+
+Two controls that were assumed closed but weren't.
+
+**10.1 — the band an admin can actually see.** `refBandInnerHtml()` reads `SES.no`
+and `monthTotalCost()`, so the store cost band was visible only to the store
+itself. The July 2026 anomaly was caught *by this band* — it is the
+store-total-vs-band check, a different control from T2's per-item ratio vs. the
+network median — and the person who reports the number upward could not see it.
+Extracted the three-way classification into a pure `classifyAgainstBand(total,
+band) → {status, cls}` and gave it three renderers: the store panel (unchanged
+output), the admin dashboard's submitted-stores list, and
+`exportStoreStatusExcel()`. **No band is its own outcome** (`cls:'none'`, muted),
+never green — an admin table showing "in range ✅" for a store with no band is
+worse than showing nothing. 152 of 164 stores have a band, so this is the normal
+case, not an edge case. Submitted stores sort red → amber → green → no-band, so
+out-of-band stores are reachable without scrolling, and the summary line above
+the list keeps the no-band count as its own number.
+
+**10.2 — "could not be checked" is no longer indistinguishable from "passed".**
+`evalOutlier()` returned `flagged:false` both when a row passed both ratios and
+when neither ratio could be computed at all. Added a third field, `coverage`
+(`'full'` / `'partial'` / `'none'`), derived from whether each ratio is non-null.
+`flagged` semantics, `OUTLIER_FACTOR` (10), the never-auto-reject behaviour and
+the `pack_size != null` guard on `totalBaseQty()` are all unchanged.
+**No-coverage deliberately does not set `flagged`** — that would put a
+confirmation modal in front of every item in its first month, train people to
+tick through it, and degrade the control that does work. Instead: a distinct grey
+dashed `ยังเทียบไม่ได้` chip on the entry row (visually separate from T1's amber
+`รหัสซ้ำ`), and an unchecked-row count on the admin exception card, shown in the
+"no exceptions found" branch too — a bare all-clear reads as full coverage when
+it may be no coverage.
+
+**10.3 — `master_uom.json` UOM vocabulary: reported, not fixed.** See
+`UOM_VOCAB_REPORT.md`. Zero values edited, per guardrail 4.
+
 ## Departures from the original plan doc
 
 These were verified against actual code/data while implementing T1–T7:
@@ -149,23 +188,86 @@ These were verified against actual code/data while implementing T1–T7:
    `UOM_LIST` (`app.js`) — `ห่อ`, `กระปุก`, `แผง`, `ก้อน`, `ขวด`, `ถัง`, and two
    likely typos `ถง` / `แพค`. Not a blocker for T6 (its dropdown sources from
    `master_uom` directly) — reported here, not silently fixed, per guardrail 4.
+   **T10 turned this into a committed list for the Buyer** —
+   `UOM_VOCAB_REPORT.md` — and found two things the T6 note didn't: `sub_uom` has
+   the same problem (`ใบ` on 14 items, `กระป๋อง` on 2, `กระปุก` on 1), and T6's own
+   migration already wrote `priceUom` equal to the unlisted packtype for all 14
+   items, `ถง` and `แพค` included. A rename is therefore a two-place atomic change
+   — `master_uom.json` **and** `masterData/items[code].priceUom` — because
+   `estCostOf()` returns `null` when `priceUom` matches neither the packtype nor
+   the sub_uom, which would blank that item's cost in every store and every month.
+4. **T10 departure — the export's "submitted" rule changed.**
+   `exportStoreStatusExcel()` derived "บันทึกแล้ว" from *any non-empty key* under
+   the month node, while the admin dashboard used *any `ITEMS_DATA` row with a
+   non-null qty*. Two rules, silently disagreeing whenever a stale key for a
+   delisted item lingers. `renderStoreStatusForYM()` was a *third* copy of the
+   same question — it used the export's rule while hosting the export button, so
+   its on-screen counts could disagree with the file that button produced.
+   T10 extracted `storeMonthTotals()` and pointed all three at
+   the dashboard's rule, because shipping band columns computed one way beside a
+   status column computed another way is exactly the drift T10 exists to stop.
+   Row counts in the export can therefore differ slightly from pre-T10 files.
+5. **T10 departure — two acceptance items in the T10 brief were packaging-only.**
+   `EXCLUDE_SIAM_FROZEN_ADJACENT` and `REF_BAND_READY` do not exist anywhere in
+   this repo; bakery loads `REFERENCE_BAND` synchronously in `loadData()` with no
+   ready gate, so there is no loading-vs-no-band distinction to preserve here and
+   no constant whose comment needs rewording. The Q1 decision is recorded below as
+   text instead. Also, the brief cites band maxima of ฿233,899 (store 153) and
+   ฿379,328 (store 159); bakery's `store_reference_band.json` has ฿456,724 and
+   ฿622,202 — the brief's figures are packaging's. Both stores are still far
+   outside their bakery bands, so the acceptance check holds either way.
 
-## Before starting T8 or T9
+## Decisions closed on 25 Aug 2026 — do not re-raise these
 
-1. **Both are blocked** — do not start either without Q3/Q4 answered by the
-   project owner + Buyer/Tech Lead as applicable. This isn't a technical
-   blocker, it's a product decision:
-   - **Q3** (gates T8): if price lives only on the item master, does
-     uploading a new price list silently restate the reported value of every
-     prior month? T6 already put `price`/`priceUom`/`priceEffectiveFrom` on
-     the master — T8's price-import tool needs to decide whether historical
-     `recordAmount()`/`estCostOf()` calls should snapshot the price at
-     count-time instead of always reading the current master value, which is
-     the crux of Q3.
-   - **Q4** (gates T9): store-only upload vs. admin-on-behalf upload, and
-     whether `submittedBy` needs to record which case applied.
-2. Once unblocked: `git checkout -b ticket-8-price-import main` (or
-   `ticket-9-...`), confirm `git log origin/main` shows T1–T7 merged first.
-3. Delete this section (and update the ticket table above) once T8/T9 are
-   answered and started, so this file stays a living resume point. Don't
-   delete the guardrails/departures sections — they stay relevant.
+Q1, Q3 and Q4 were open questions that gated T8/T9. **All three were decided by
+the project owner on 25 Aug 2026.** They are recorded rather than deleted so the
+reasoning survives. A future session should not stop on any of them, and should
+not reopen them without a new instruction from the project owner.
+
+- **Q1 — DECIDED: keep 528 / 801 / 804 counted.** In packaging,
+  `EXCLUDE_SIAM_FROZEN_ADJACENT` stays `false`; this is now settled
+  configuration, not a pending question. *(Bakery has no such constant — its 164
+  production locations are all genuine stores, so there was never a
+  classification problem here. This entry exists for parity with packaging's
+  `HANDOFF.md`.)*
+- **Q3 — DECIDED: snapshot the price onto the entry at save time.** History
+  freezes at count-time prices. **This is not implemented by T10 — it is T11, and
+  T11 is a prerequisite for T8.** See the T11 row in the ticket table; the design
+  is described there and only there, so there is one description of it rather
+  than two that can drift apart. **Until T11 lands, `estCostOf()` still reads the
+  live master price for every month, so historical totals are not yet stable** —
+  editing a price on the item master today silently restates every prior month's
+  reported value, including the band comparison T10 just put on the admin screen.
+- **Q4 — DECIDED: store-only upload.** No admin-on-behalf path in T9, and
+  therefore no `submittedBy` case-branching to build. **Known open consequence,
+  recorded honestly:** the de facto recovery path when a store cannot upload is
+  an admin logging in as that store, which the audit trail will attribute to the
+  store, not to the admin. That is accepted for now. It is a known limitation of
+  the decision, not an oversight in it.
+
+## What still blocks T8/T9
+
+These are the real blockers. Each needs an owner to act; none is a coding task.
+
+1. **Five `Non-Cat` item codes** (packaging) — still colliding on a single
+   Firebase key. Needs either real codes or a formal exclusion.
+   **Owner: Buyer / Fresh Food packaging (Phat).**
+   Blocks **both T8 and T9**, since both write by item code.
+2. **Packaging price source** — still PDF-only. Needs a fixed Excel template.
+   **Owner: Sornmongkol / CGA, chased via Phat and Sakuntala.**
+   Blocks **T8's packaging half only** — bakery's half is source-ready
+   (Code 206, EX VAT).
+3. **Packaging `demo/` Firebase security rules** — unfixed; reads/writes under
+   that root return `PERMISSION_DENIED` and fall back to leaf-only
+   localStorage. T8 and T9 are both write paths, so this must either be fixed,
+   or logic-only verification accepted as an explicit, discussed trade-off.
+   **Owner: project owner.**
+   (T10 was unaffected — 10.1 and 10.2 are read/display changes.)
+
+Plus one sequencing note that is not a blocker but is easy to miss: **T11 must
+land before T8**, per the Q3 decision above.
+
+When starting: `git checkout -b ticket-8-price-import main` (or `ticket-9-…` /
+`ticket-11-…`), and confirm `git log origin/main` shows T1–T7 and T10 merged
+first. Update this section as blockers clear, so the file stays a living resume
+point. Don't delete the guardrails/departures sections — they stay relevant.
