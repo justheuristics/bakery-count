@@ -234,7 +234,11 @@ function normalizeEntry(v){
     // full-month rewrite (it rewrites every row, not just changed ones) would wipe the
     // stamp on the very next save. Pass through untouched; null means "not yet stamped".
     price_at_count: (v.price_at_count!=null && v.price_at_count!=='') ? (parseFloat(v.price_at_count)) : null,
-    priceUom_at_count: (v.priceUom_at_count!=null && v.priceUom_at_count!=='') ? String(v.priceUom_at_count) : null
+    priceUom_at_count: (v.priceUom_at_count!=null && v.priceUom_at_count!=='') ? String(v.priceUom_at_count) : null,
+    // T8a: VAT basis of the stamped price, same round-trip rule as the two fields above.
+    // Rows stamped before T8a have price_at_count/priceUom_at_count but no basis — that's
+    // a real "basis unknown" state, not something to default to IN_VAT or EX_VAT by guess.
+    priceBasis_at_count: (v.priceBasis_at_count!=null && v.priceBasis_at_count!=='') ? String(v.priceBasis_at_count) : null
   };
 }
 
@@ -258,10 +262,28 @@ function masterPackSizeOf(code){ const m=MASTER_UOM[code]; return (m && m.pack_s
    T11: a row with a price snapshot (price_at_count + priceUom_at_count, stamped by
    doSaveEntry()) is priced from itself — see the snapshot branch below — never from the
    live item master or MASTER_UOM. A malformed/partial stamp falls back rather than
-   producing NaN or a guess. */
+   producing NaN or a guess.
+   T8a: masterData/items also carries priceBasis ('EX_VAT'|'IN_VAT'|null) and priceStatus
+   ('NO_CONFIRMED_PRICE'|null). priceStatus is an explicit "confirmed no price" state from
+   the August import — distinct from an item that simply has no price field at all — and
+   must never fall through to master_cost.json's old IN VAT number, which is exactly the
+   silent-mixed-basis failure this ticket exists to prevent. */
 function itemByCode(code){ return ITEMS_DATA.find(i => i.code === code) || null; }
 function hasPriceSnapshot(e){
   return !!(e && typeof e==='object' && Number.isFinite(e.price_at_count) && e.priceUom_at_count);
+}
+/* "รวม VAT" / "ไม่รวม VAT" — never invents a label when basis is unrecorded (returns null). */
+function vatBasisLabel(basis){
+  if(basis==='EX_VAT') return 'ไม่รวม VAT';
+  if(basis==='IN_VAT') return 'รวม VAT';
+  return null;
+}
+/* short basis chip for a priced row — a frozen (T11) row reads its own stamped basis;
+   an un-stamped row reads the live item master's basis. Never guesses when unknown. */
+function priceBasisLabel(code, e){
+  if(hasPriceSnapshot(e)) return vatBasisLabel(e.priceBasis_at_count) || 'ฐาน VAT ไม่ระบุ (ก่อน T8a)';
+  const item = itemByCode(code);
+  return item ? vatBasisLabel(item.priceBasis) : null;
 }
 function estCostOf(code, e){
   const qty    = (e && typeof e==='object' && e.qty!=='' && e.qty!=null) ? Number(e.qty) : 0;
@@ -288,6 +310,10 @@ function estCostOf(code, e){
   const m = MASTER_UOM[code];
   if(!m) return null;
   const item = itemByCode(code);
+  // T8a: explicit "confirmed no price" — never fall back to master_cost.json's stale IN
+  // VAT number for these. That silent substitution is the exact failure this ticket exists
+  // to prevent (see priceStatus comment above hasPriceSnapshot).
+  if(item && item.priceStatus === 'NO_CONFIRMED_PRICE') return null;
   let costVat, costUom;
   if(item && item.price!=null && item.priceUom){
     costVat = Number(item.price);
@@ -321,15 +347,32 @@ function priceBasisNote(code, e, ym){
   if(hasPriceSnapshot(e)) return null;
   const item = itemByCode(code);
   const eff = item && item.priceEffectiveFrom;
+  // T8a: append the live master's VAT basis so an un-stamped row never shows a bare
+  // "still floating" warning with no indication of what basis it's floating on.
+  const basisLbl = item ? vatBasisLabel(item.priceBasis) : null;
+  const basisSuffix = basisLbl ? ` (${basisLbl})` : (item && item.priceStatus !== 'NO_CONFIRMED_PRICE' ? ' (ฐาน VAT ไม่ระบุ)' : '');
   if(eff && ym && eff > ym){
-    return `ราคาปัจจุบัน — ยังไม่ได้ตรึง (ราคานี้มีผลตั้งแต่ ${ymToThai(eff)} ซึ่งอยู่หลังเดือนที่นับ)`;
+    return `ราคาปัจจุบัน — ยังไม่ได้ตรึง${basisSuffix} (ราคานี้มีผลตั้งแต่ ${ymToThai(eff)} ซึ่งอยู่หลังเดือนที่นับ)`;
   }
-  return 'ราคาปัจจุบัน — ยังไม่ได้ตรึง';
+  return `ราคาปัจจุบัน — ยังไม่ได้ตรึง${basisSuffix}`;
 }
-/* "฿1,234.00 / ถุง" — the UOM is always adjacent to the number, never a bare figure */
+/* "฿1,234.00 / ถุง · รวม VAT" — the UOM (and, from T8a, the VAT basis) is always adjacent
+   to the number, never a bare figure. A confirmed-no-price item gets its own distinct
+   sentence — never "—", which would look identical to "not priced yet". */
 function fmtPrice(item){
-  if(!item || item.price==null || !item.priceUom) return '—';
-  return `฿${fNum(item.price,2)} / ${esc(item.priceUom)}`;
+  if(!item) return '—';
+  if(item.priceStatus === 'NO_CONFIRMED_PRICE') return 'ไม่มีราคายืนยัน — ใช้ราคาขายหน้าร้าน';
+  if(item.price==null || !item.priceUom) return '—';
+  const basisLbl = vatBasisLabel(item.priceBasis);
+  return `฿${fNum(item.price,2)} / ${esc(item.priceUom)}${basisLbl ? ' · '+esc(basisLbl) : ''}`;
+}
+/* single source of truth for the ราคาฐาน export column — used by both buildExportDetailRows
+   and exportAllStoresMonth so the two files never describe the same row's basis differently. */
+function priceBasisColumnText(code, entry, ym){
+  const basisNote = priceBasisNote(code, entry, ym);
+  if(basisNote) return basisNote;
+  const basisLbl = priceBasisLabel(code, entry);
+  return basisLbl ? `ราคา ณ วันที่นับ (${basisLbl})` : 'ราคา ณ วันที่นับ';
 }
 /* shared as_of date for the column-header disclaimer (all entries share one extraction date today) */
 function costAsOfDate(){
@@ -343,7 +386,12 @@ function estCostCellContent(code, e){
   if(!isFilled(e)) return { cls:'est-cost-cell muted', html:'—' };
   const cost = estCostOf(code, e);
   if(cost===null) return { cls:'est-cost-cell muted', html:'—' };
-  return { cls:'est-cost-cell', html:`≈ ${fNum(cost,2)}` };
+  // T8a: VAT basis as a hover tooltip, not inline text — the count screen's cell is too
+  // narrow for a visible label on every row, but "shown wherever a price is shown" still
+  // needs to hold here, just via title= rather than a second line.
+  const basisLbl = priceBasisLabel(code, e);
+  const title = basisLbl ? ` title="${esc(basisLbl)}"` : '';
+  return { cls:'est-cost-cell', html:`<span${title}>≈ ${fNum(cost,2)}</span>` };
 }
 function estCostCell(code, e){
   const {cls, html} = estCostCellContent(code, e);
@@ -1551,11 +1599,15 @@ async function doSaveEntry(confirmedFlags){
       if(hasPriceSnapshot(e)){
         rec.price_at_count = e.price_at_count;
         rec.priceUom_at_count = e.priceUom_at_count;
+        // T8a: a row stamped before this ticket has no priceBasis_at_count — pass through
+        // whatever's there (possibly still null) rather than inventing a basis for it now.
+        rec.priceBasis_at_count = e.priceBasis_at_count!=null ? e.priceBasis_at_count : null;
       } else {
         const item = itemByCode(i.code);
         if(item && item.price!=null && item.priceUom){
           rec.price_at_count = Number(item.price);
           rec.priceUom_at_count = item.priceUom;
+          rec.priceBasis_at_count = item.priceBasis!=null ? item.priceBasis : null;
           // Write the new stamp back onto the in-memory working entry too, not just the
           // Firebase-bound rec — doSaveEntry() can run more than once in the same page
           // session (edit more rows, save again) without an intervening reload, and
@@ -1563,6 +1615,7 @@ async function doSaveEntry(confirmedFlags){
           // and re-price this row at whatever the item master says by then.
           e.price_at_count = rec.price_at_count;
           e.priceUom_at_count = rec.priceUom_at_count;
+          e.priceBasis_at_count = rec.priceBasis_at_count;
         }
       }
     }
@@ -1674,7 +1727,7 @@ function buildExportDetailRows(mData, ym){
     const cost = estCostOf(i.code, entry);
     // T11: states per row whether this cost is a frozen count-time price or is still
     // floating on today's item-master price — never let the two look the same.
-    const basisNote = priceBasisNote(i.code, entry, ym);
+    // T8a: same column now also names the VAT basis — see priceBasisColumnText().
     rows.push([
       i.no, i.class, i.code, i.name,
       entry.qty,
@@ -1684,7 +1737,7 @@ function buildExportDetailRows(mData, ym){
       entry.pack_size!=null?entry.pack_size:'',
       totalBaseQty(entry),
       cost!=null?Number(cost.toFixed(2)):'',
-      basisNote ? basisNote : 'ราคา ณ วันที่นับ'
+      priceBasisColumnText(i.code, entry, ym)
     ]);
   });
   return rows;
@@ -1853,6 +1906,35 @@ function exceptionQueueCardHtml(exceptions, selYM, coverageStats){
       </table>
     </div>
     ${coverageNoteHtml(coverageStats)}
+  </div>`;
+}
+
+/* T8a: how many item-master prices are on which VAT basis right now. Computed straight
+   from ITEMS_DATA (masterData/items), not from entries — this is about what the *live
+   master* is mixing today, which is what monthTotalCost()/refBandInnerHtml() actually sum.
+   Same placement rule as T10's coverageNoteHtml / T11's livePriceNoteHtml: sits next to
+   the numbers it qualifies, renders even when nothing is mixed, so "not mixed" is a stated
+   fact rather than an absent check. */
+function priceBasisMixStats(){
+  let exVat=0, inVat=0, noPrice=0, noBasis=0;
+  ITEMS_DATA.forEach(it=>{
+    if(it.priceStatus === 'NO_CONFIRMED_PRICE'){ noPrice++; return; }
+    if(it.price==null || !it.priceUom) return; // never priced at all — not part of the basis question
+    if(it.priceBasis === 'EX_VAT') exVat++;
+    else if(it.priceBasis === 'IN_VAT') inVat++;
+    else noBasis++;
+  });
+  return { exVat, inVat, noPrice, noBasis };
+}
+function priceBasisMixNoteHtml(){
+  const { exVat, inVat, noPrice, noBasis } = priceBasisMixStats();
+  if(exVat===0 && inVat===0 && noPrice===0 && noBasis===0) return '';
+  const mixed = exVat>0 && inVat>0;
+  const tone = mixed ? 'var(--warn)' : 'var(--txt3)';
+  return `<div class="card" style="margin-bottom:14px;padding:9px 15px;font-size:11.5px;color:var(--txt3);line-height:1.6">
+    <span style="color:${tone};font-weight:700">ฐาน VAT ของราคาที่ใช้อยู่ในรายการสินค้าตอนนี้:</span>
+    ไม่รวม VAT ${fNum(exVat)} · รวม VAT ${fNum(inVat)}${noPrice?` · ไม่มีราคายืนยัน ${fNum(noPrice)}`:''}${noBasis?` · <span style="color:var(--red)">ไม่ระบุฐาน ${fNum(noBasis)}</span>`:''}
+    ${mixed ? `<div style="color:${tone};margin-top:2px">ยอดรวมต้นทุนประมาณการด้านล่างผสมสองฐาน VAT เข้าด้วยกัน (T8a) — ไม่ใช่ความผิดพลาด แต่ตัวเลขไม่ได้อยู่บนฐานเดียวกันทั้งหมด</div>` : ''}
   </div>`;
 }
 
@@ -2110,6 +2192,8 @@ async function renderAdminDashboardForYM(C, mc, selYM){
     ${classChartHTML}
 
     ${exceptionQueueCardHtml(exceptions, selYM, outlierResult)}
+
+    ${priceBasisMixNoteHtml()}
 
     ${livePriceNoteHtml(countedRows, livePriceRows)}
 
@@ -2377,7 +2461,10 @@ async function loadSingleStoreDet(sNo, ym, det){
     if(entry && entry.qty!=='' && entry.qty!=null){
       const cost=estCostOf(item.code, entry);
       const basisNote = priceBasisNote(item.code, entry, ym);
-      filledItems.push({code:item.code,name:item.name,cls:item.class,no:item.no,qty:entry.qty,uom:entry.uom,cost,basisNote});
+      // T8a: plain VAT-basis chip, shown for both stamped and un-stamped rows — basisNote
+      // above is only the un-stamped *warning*; basisLabel is the basis itself either way.
+      const basisLabel = priceBasisLabel(item.code, entry);
+      filledItems.push({code:item.code,name:item.name,cls:item.class,no:item.no,qty:entry.qty,uom:entry.uom,cost,basisNote,basisLabel});
       totalFilled++;
       if(cost!=null) totalCost+=cost;
     }
@@ -2401,7 +2488,7 @@ async function loadSingleStoreDet(sNo, ym, det){
           <thead><tr><th style="width:44px">No.</th><th style="width:64px">Class</th><th style="width:96px">รหัส</th><th>ชื่อสินค้า</th><th class="tr" style="width:80px">จำนวน</th><th style="width:90px">หน่วยนับ</th><th class="tr" style="width:110px">ประมาณการต้นทุน</th></tr></thead>
           <tbody>
             ${filledItems.length>0
-              ? filledItems.map(r=>`<tr><td class="code-cell">${r.no}</td><td><span class="cls-badge">${esc(r.cls)}</span></td><td class="code-cell">${esc(r.code)}</td><td style="white-space:normal;line-height:1.3">${esc(r.name)}</td><td class="tr num bold">${fNum(r.qty, r.qty%1===0?0:2)}</td><td>${esc(r.uom||'—')}</td><td class="tr num">${r.cost!=null?'≈ '+fNum(r.cost,2):'—'}${r.basisNote?`<div><span class="pill pill-no" style="font-size:10px;white-space:normal" title="${esc(r.basisNote)}">ราคาปัจจุบัน — ยังไม่ได้ตรึง</span></div>`:''}</td></tr>`).join('')
+              ? filledItems.map(r=>`<tr><td class="code-cell">${r.no}</td><td><span class="cls-badge">${esc(r.cls)}</span></td><td class="code-cell">${esc(r.code)}</td><td style="white-space:normal;line-height:1.3">${esc(r.name)}</td><td class="tr num bold">${fNum(r.qty, r.qty%1===0?0:2)}</td><td>${esc(r.uom||'—')}</td><td class="tr num">${r.cost!=null?'≈ '+fNum(r.cost,2):'—'}${r.cost!=null && r.basisLabel?`<div style="font-size:10px;color:var(--txt4)">${esc(r.basisLabel)}</div>`:''}${r.basisNote?`<div><span class="pill pill-no" style="font-size:10px;white-space:normal" title="${esc(r.basisNote)}">ราคาปัจจุบัน — ยังไม่ได้ตรึง</span></div>`:''}</td></tr>`).join('')
               : '<tr><td colspan="7" class="tc muted" style="padding:20px">ไม่มีข้อมูลในเดือนนี้</td></tr>'
             }
           </tbody>
@@ -2429,7 +2516,6 @@ async function exportAllStoresMonth(ym){
         f++;
         const cost = estCostOf(item.code, entry);
         if(cost!=null) costSum += cost;
-        const basisNote = priceBasisNote(item.code, entry, ym);
         detRows.push([
           k, sName, item.class, item.code, item.name,
           entry.qty,
@@ -2439,7 +2525,7 @@ async function exportAllStoresMonth(ym){
           entry.pack_size!=null?entry.pack_size:'',
           totalBaseQty(entry),
           cost!=null?Number(cost.toFixed(2)):'',
-          basisNote ? basisNote : 'ราคา ณ วันที่นับ'
+          priceBasisColumnText(item.code, entry, ym)
         ]);
       }
     });
@@ -2636,6 +2722,7 @@ function buildManageItemsView(C) {
 
   C.innerHTML = `
     ${masterDataIssuesCardHtml()}
+    ${priceBasisMixNoteHtml()}
     <div class="card" style="margin-bottom:14px;border-left:4px solid var(--blue)">
       <div style="display:flex;align-items:center;gap:14px">
         <div style="font-size:36px">📦</div>
@@ -2652,6 +2739,8 @@ function buildManageItemsView(C) {
         <div class="flex gap8 items-c">
           <button class="btn btn-blue" onclick="showAddItemModal()">➕ เพิ่มสินค้า</button>
           <button class="btn btn-secondary btn-sm" onclick="showMasterCostMigrationModal()">📥 ย้ายราคาจาก master_cost.json</button>
+          <button class="btn btn-secondary btn-sm" onclick="showBasisBackfillModal()">🏷️ ตั้งฐาน VAT ย้อนหลัง (T8a)</button>
+          <button class="btn btn-blue btn-sm" onclick="showAugustPriceImportModal()">📥 นำเข้าราคา ส.ค. 69 (T8a)</button>
           <button class="btn btn-secondary btn-sm" onclick="renderManageItems()">🔄 รีเฟรช</button>
         </div>
       </div>
@@ -2727,6 +2816,15 @@ function showAddItemModal() {
         <div style="font-size:11px;color:var(--txt3);margin-top:3px">รายการใหม่มักยังไม่มี master_uom.json (ต้อง deploy แยก) — ตั้งราคาได้ทีหลังผ่าน "แก้ไข" เมื่อมีแล้ว</div>
       </div>
       <div>
+        <label class="flabel">ฐาน VAT ของราคา (T8a) <span style="color:var(--red)">*ถ้ามีราคา</span></label>
+        <select class="ctrl w100" id="mi_priceBasis">
+          <option value="">— ไม่ระบุ —</option>
+          <option value="IN_VAT">รวม VAT (IN_VAT)</option>
+          <option value="EX_VAT">ไม่รวม VAT (EX_VAT)</option>
+        </select>
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">บังคับเลือกเมื่อกรอกราคา — ป้องกันราคาที่ไม่รู้ฐาน VAT เข้าไปปนในระบบ</div>
+      </div>
+      <div>
         <label class="flabel">มีผลตั้งแต่เดือน</label>
         <input type="month" class="ctrl w100" id="mi_priceEff" value="${currentYM()}">
       </div>
@@ -2765,11 +2863,15 @@ async function doAddItem(nextNo) {
   if (ITEMS_DATA.find(i => i.code === code)) { toast('รหัสสินค้านี้มีอยู่แล้ว', 'err'); return; }
   const priceSel = document.getElementById('mi_priceUom');
   const priceStr = document.getElementById('mi_price').value.trim();
-  const hasPrice = priceStr !== '' && priceSel && !priceSel.disabled && priceSel.value;
+  const priceBasis = document.getElementById('mi_priceBasis').value;
+  if (priceStr !== '' && !priceBasis) { toast('กรุณาเลือกฐาน VAT ของราคา', 'err'); return; }
+  const hasPrice = priceStr !== '' && priceSel && !priceSel.disabled && priceSel.value && priceBasis;
   const newItem = {
     no: nextNo, class: cls, code, name,
     price: hasPrice ? Number(priceStr) : null,
     priceUom: hasPrice ? priceSel.value : null,
+    priceBasis: hasPrice ? priceBasis : null,
+    priceStatus: null,
     priceEffectiveFrom: hasPrice ? (document.getElementById('mi_priceEff').value || currentYM()) : null
   };
   const newItems = [...ITEMS_DATA, newItem];
@@ -2808,6 +2910,11 @@ function showEditItemModal(idx) {
         <label class="flabel">ชื่อสินค้า <span style="color:var(--red)">*</span></label>
         <input type="text" class="ctrl w100" id="ei_name" value="${esc(it.name)}">
       </div>
+      ${it.priceStatus === 'NO_CONFIRMED_PRICE' ? `
+      <div style="padding:9px 12px;background:var(--warn-bg);border-radius:var(--r8);border:1px solid rgba(212,139,10,.25);font-size:12px;color:var(--warn)">
+        ⚠️ รายการนี้ถูกตั้งเป็น "ไม่มีราคายืนยัน" จากการนำเข้าราคาเดือน ส.ค. 69 (T8a) — ใช้ราคาขายหน้าร้านแทน
+        การกรอกราคาด้านล่างจะล้างสถานะนี้และตั้งเป็นราคายืนยันแทน
+      </div>` : ''}
       <div>
         <label class="flabel">ราคาต่อหน่วย (บาท)</label>
         <input type="number" class="ctrl w100" id="ei_price" step="0.01" min="0" value="${it.price!=null?it.price:''}" placeholder="เช่น 150.00">
@@ -2820,6 +2927,15 @@ function showEditItemModal(idx) {
           ${uomOptions}
         </select>
         <div style="font-size:11px;color:var(--txt3);margin-top:3px">จำกัดเฉพาะหน่วยของสินค้านี้ตาม master_uom.json (${esc(m.packtype||'—')} / ${esc(m.sub_uom||'—')})</div>
+      </div>
+      <div>
+        <label class="flabel">ฐาน VAT ของราคา (T8a) <span style="color:var(--red)">*ถ้ามีราคา</span></label>
+        <select class="ctrl w100" id="ei_priceBasis">
+          <option value="">— ไม่ระบุ —</option>
+          <option value="IN_VAT" ${it.priceBasis==='IN_VAT'?'selected':''}>รวม VAT (IN_VAT)</option>
+          <option value="EX_VAT" ${it.priceBasis==='EX_VAT'?'selected':''}>ไม่รวม VAT (EX_VAT)</option>
+        </select>
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">บังคับเลือกเมื่อกรอกราคา — ป้องกันราคาที่ไม่รู้ฐาน VAT เข้าไปปนในระบบ</div>
       </div>
       <div>
         <label class="flabel">มีผลตั้งแต่เดือน</label>
@@ -2840,8 +2956,10 @@ async function doEditItem(idx) {
   if (!cls || !name) { toast('กรุณากรอกข้อมูลให้ครบถ้วน', 'err'); return; }
   const priceStr = document.getElementById('ei_price').value.trim();
   const priceUom = document.getElementById('ei_priceUom').value;
+  const priceBasis = document.getElementById('ei_priceBasis').value;
   if (priceStr !== '' && !priceUom) { toast('กรุณาเลือกหน่วยของราคา', 'err'); return; }
-  const hasPrice = priceStr !== '' && priceUom;
+  if (priceStr !== '' && !priceBasis) { toast('กรุณาเลือกฐาน VAT ของราคา', 'err'); return; }
+  const hasPrice = priceStr !== '' && priceUom && priceBasis;
   // T11: this is the screen where a live-price restatement actually originates for every
   // un-stamped month — flag it here in the confirmation itself, not only leave it to be
   // discovered later on the dashboard's livePriceNoteHtml() line.
@@ -2853,6 +2971,11 @@ async function doEditItem(idx) {
     ...it, class: cls, name,
     price: hasPrice ? Number(priceStr) : null,
     priceUom: hasPrice ? priceUom : null,
+    priceBasis: hasPrice ? priceBasis : null,
+    // T8a: a manual edit is an explicit human decision about this item's price right now —
+    // it always supersedes an import-set "confirmed no price" state, whether the admin just
+    // gave it a real price or blanked the field back to plain "no price".
+    priceStatus: null,
     priceEffectiveFrom: hasPrice ? (document.getElementById('ei_priceEff').value || currentYM()) : null
   } : it);
   closeModal();
@@ -2919,7 +3042,9 @@ function computeMasterCostMigrationPreview(){
     const c = MASTER_COST[it.code];
     if (m && m.packtype && c && c.cost_vat != null) {
       const eff = /^\d{4}-\d{2}-\d{2}$/.test(c.as_of || '') ? c.as_of.slice(0, 7) : currentYM();
-      resolved.push({ code: it.code, name: it.name, price: c.cost_vat, priceUom: m.packtype, priceEffectiveFrom: eff });
+      // T8a: cost_vat is documented VAT-inclusive (see estCostOf's comment) — any item this
+      // resolves, now or on a future re-run, is IN_VAT by definition. Never leave it basis-less.
+      resolved.push({ code: it.code, name: it.name, price: c.cost_vat, priceUom: m.packtype, priceBasis: 'IN_VAT', priceEffectiveFrom: eff });
     } else {
       unresolved.push({ code: it.code, name: it.name, reason: !m ? 'ไม่มี master_uom.json' : 'ไม่มี master_cost.json' });
     }
@@ -2959,10 +3084,272 @@ async function doMasterCostMigration(){
   const byCode = Object.fromEntries(resolved.map(r => [r.code, r]));
   const newItems = ITEMS_DATA.map(it => {
     const r = byCode[it.code];
-    return r ? { ...it, price: r.price, priceUom: r.priceUom, priceEffectiveFrom: r.priceEffectiveFrom } : it;
+    return r ? { ...it, price: r.price, priceUom: r.priceUom, priceBasis: r.priceBasis, priceEffectiveFrom: r.priceEffectiveFrom } : it;
   });
   closeModal();
   await saveMasterItems(newItems, `ย้ายราคาแล้ว ${resolved.length} รายการ ✅`);
+}
+
+/* ════════════════════════════════════════════
+   [T8a — Step 1] One-off backfill: priceBasis for every item priced before this ticket.
+   Every one of those prices came from master_cost.json's cost_vat, which is documented
+   (see estCostOf's comment) as VAT-INCLUSIVE — so backfilling them as 'IN_VAT' isn't a
+   guess, it's recording what they already are. Never overwrites an item that already has
+   a priceBasis set (re-running after a partial run, or after the August import has already
+   labelled some items EX_VAT, only fills gaps — it will never relabel an EX_VAT item back
+   to IN_VAT). Items with no price at all are left alone — there's no basis to backfill.
+════════════════════════════════════════════ */
+function computeBasisBackfillPreview(){
+  const toBackfill = [], alreadySet = [], noPrice = [];
+  ITEMS_DATA.forEach(it => {
+    if (it.priceBasis != null) { alreadySet.push(it); return; }
+    if (it.price != null && it.priceUom) { toBackfill.push(it); }
+    else { noPrice.push(it); }
+  });
+  return { toBackfill, alreadySet, noPrice };
+}
+
+function showBasisBackfillModal(){
+  const { toBackfill, alreadySet, noPrice } = computeBasisBackfillPreview();
+  if (toBackfill.length === 0) {
+    showModal(`
+      <h3>🏷️ ตั้งฐาน VAT ย้อนหลัง (T8a)</h3>
+      <p style="color:var(--txt2);margin-top:10px">ไม่มีรายการที่ต้องตั้งฐาน — ${alreadySet.length} รายการมีฐานแล้ว${noPrice.length ? `, ${noPrice.length} รายการยังไม่มีราคา` : ''}</p>
+      <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+    return;
+  }
+  showModal(`
+    <h3>🏷️ ตั้งฐาน VAT ย้อนหลัง (T8a)</h3>
+    <p style="color:var(--txt2);margin-top:10px">
+      จะตั้ง <b style="color:var(--amber)">priceBasis = รวม VAT (IN_VAT)</b> ให้ <b style="color:var(--green)">${toBackfill.length} รายการ</b>
+      (มีราคาอยู่แล้วจากการย้ายจาก master_cost.json ซึ่งเป็นราคารวม VAT)
+      ${alreadySet.length ? `<br><span style="font-size:12px;color:var(--txt3)">ข้าม ${alreadySet.length} รายการที่มีฐานอยู่แล้ว — จะไม่ถูกเขียนทับ</span>` : ''}
+      ${noPrice.length ? `<br><span style="font-size:12px;color:var(--txt3)">${noPrice.length} รายการยังไม่มีราคา — ไม่มีฐานให้ตั้ง</span>` : ''}
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-blue" onclick="doBasisBackfill()">🏷️ ยืนยันตั้งฐาน VAT (${toBackfill.length} รายการ)</button>
+    </div>`);
+}
+
+async function doBasisBackfill(){
+  const { toBackfill } = computeBasisBackfillPreview();
+  const codes = new Set(toBackfill.map(it => it.code));
+  const newItems = ITEMS_DATA.map(it => codes.has(it.code) ? { ...it, priceBasis: 'IN_VAT' } : it);
+  closeModal();
+  await saveMasterItems(newItems, `ตั้งฐาน VAT ย้อนหลังแล้ว ${toBackfill.length} รายการ (รวม VAT) ✅`);
+  await dbPush('logs', { no:'admin', name:(SES && SES.name) || 'admin', ts:Date.now(), action:'priceBasisBackfill', source:'admin-override', count: toBackfill.length });
+}
+
+/* ════════════════════════════════════════════
+   [T8a — Step 2] One-off August 2026 price import (Code 206 Bakery, EX VAT)
+   Ticket 8a — narrowed one-off, NOT the recurring import mechanism (that's Ticket 8).
+   Source: docs/price_import_2026-08.json, a committed extract of
+   docs/Bakery_Price_Import_2026-08_FILLED.xlsx (tools/extract_price_import.py). Only
+   columns A (Code) and K (New Price EX VAT) are imported, per the brief — every other
+   extracted field here is context for the preview, never written to Firebase.
+   Routes by Status ONLY (column M) — never by the sheet's own Countable/In Item Master
+   columns, which were computed against data.json (stale) rather than this repo's live
+   master_uom.json. The preview below recomputes countability from the LIVE master and
+   reports every row where the sheet and the live master disagree — reviewed, not silently
+   included or excluded (see the reconciliation field).
+   NO PRICE rows get an explicit priceStatus:'NO_CONFIRMED_PRICE' sentinel — never null'd
+   silently, which would leave estCostOf() falling back to master_cost.json's stale IN VAT
+   number (guarded in estCostOf(), see its comment).
+════════════════════════════════════════════ */
+let AUGUST_PRICE_IMPORT_DATA = null;
+async function loadAugustPriceImportData(){
+  if(AUGUST_PRICE_IMPORT_DATA) return AUGUST_PRICE_IMPORT_DATA;
+  const res = await fetch('docs/price_import_2026-08.json');
+  if(!res.ok) throw new Error('โหลด price_import_2026-08.json ไม่สำเร็จ (' + res.status + ')');
+  AUGUST_PRICE_IMPORT_DATA = await res.json();
+  return AUGUST_PRICE_IMPORT_DATA;
+}
+
+function computeAugustPriceImportPreview(importData){
+  const rows = importData.rows;
+  const exp = importData.expected;
+  // Re-verify the committed extract's own numbers at run time too — not just at generation
+  // time — so a hand-edited or stale JSON file can never quietly diverge from what it claims.
+  const countErrors = [];
+  const assertCount = (name, got, want) => { if(got !== want) countErrors.push(`${name}: ${got} ≠ ${want}`); };
+  assertCount('total_rows', rows.length, exp.total_rows);
+  assertCount('changed', rows.filter(r=>r.status==='CHANGED').length, exp.changed);
+  assertCount('unchanged', rows.filter(r=>r.status==='UNCHANGED').length, exp.unchanged);
+  assertCount('new', rows.filter(r=>r.status==='NEW').length, exp.new);
+  assertCount('no_price', rows.filter(r=>r.status==='NO_PRICE').length, exp.no_price);
+  assertCount('not_countable', rows.filter(r=>r.status==='NOT_COUNTABLE').length, exp.not_countable);
+  assertCount('duplicate_codes', rows.length - new Set(rows.map(r=>r.code)).size, exp.duplicate_codes);
+
+  const itemByCodeMap = Object.fromEntries(ITEMS_DATA.map(it => [it.code, it]));
+  const toWrite = [], skippedNotCountable = [], skippedMissingFromMaster = [], validationErrors = [];
+
+  rows.forEach(r => {
+    if(r.status === 'NOT_COUNTABLE'){ skippedNotCountable.push(r); return; }
+    const item = itemByCodeMap[r.code];
+    // Sheet's "In Item Master" column was computed against data.json (stale, 366 items),
+    // not this repo's live masterData/items (338) — confirmed 25 Aug 2026, present for 24
+    // of the 38 NO_PRICE-status codes. None have a live master_uom.json entry either, so
+    // there is nowhere to write a status even if we wanted to — same disposition as
+    // NOT_COUNTABLE (never blocks the rest of the import), just reported under its own
+    // reason since it's a different root cause the Buyer should see separately.
+    if(!item){ skippedMissingFromMaster.push(r); return; }
+    if(r.status === 'NO_PRICE'){
+      toWrite.push({ code:r.code, name:r.name, status:r.status, action:'no_price' });
+      return;
+    }
+    // CHANGED / UNCHANGED / NEW — must resolve to a real, non-guessed price + unit
+    if(!(r.newPriceExVat > 0)){ validationErrors.push({ code:r.code, name:r.name, issue:`สถานะ ${r.status} แต่ไม่มีราคาที่ใช้ได้` }); return; }
+    const m = MASTER_UOM[r.code];
+    if(!m || !m.packtype){ validationErrors.push({ code:r.code, name:r.name, issue:'ไม่มี master_uom.json — ไม่เดาหน่วย' }); return; }
+    if(r.priceUom !== m.packtype){ validationErrors.push({ code:r.code, name:r.name, issue:`priceUom ในไฟล์ (${r.priceUom}) ไม่ตรงกับ master_uom.json (${m.packtype}) — ไม่เดา` }); return; }
+    toWrite.push({ code:r.code, name:r.name, status:r.status, action:'price', price:r.newPriceExVat, priceUom:r.priceUom });
+  });
+
+  // Reconciliation: rows the SHEET marked not-usable (NOT_COUNTABLE) that the LIVE master
+  // actually has a master_uom.json entry for — the 88-row discrepancy found during planning.
+  // Reported, never auto-included — Status-only routing (confirmed) leaves these skipped.
+  const reconciliation = skippedNotCountable
+    .filter(r => !!MASTER_UOM[r.code])
+    .map(r => ({ code:r.code, name:r.name }));
+
+  // Every written code leaves the IN_VAT bucket — 'price' rows move to EX_VAT, but
+  // 'no_price' rows ALSO leave it (priceBasis goes to null, not staying IN_VAT). An earlier
+  // version of this only subtracted 'price' codes and overstated the residual by exactly
+  // the no_price count (reported 225 instead of the true 211 after the 25 Aug 2026 run) —
+  // fixed here so the projection this modal shows before a write is trustworthy.
+  const writtenCodes = new Set(toWrite.map(w => w.code));
+  const currentInVatCount = ITEMS_DATA.filter(it => it.priceBasis === 'IN_VAT').length;
+  const projectedInVatAfter = ITEMS_DATA.filter(it => it.priceBasis === 'IN_VAT' && !writtenCodes.has(it.code)).length;
+
+  const canWrite = countErrors.length === 0 && validationErrors.length === 0;
+
+  return {
+    canWrite, countErrors, toWrite, skippedNotCountable, skippedMissingFromMaster, validationErrors, reconciliation,
+    currentInVatCount, projectedInVatAfter,
+    beyond20pct: importData.beyond20pct, noPriceInSource: importData.noPriceInSource,
+    conflicts: importData.conflicts, sourceSha256: importData.sourceSha256, effectiveFrom: importData.effectiveFrom
+  };
+}
+
+async function showAugustPriceImportModal(){
+  let importData, preview;
+  try {
+    importData = await loadAugustPriceImportData();
+    preview = computeAugustPriceImportPreview(importData);
+  } catch(e){
+    showModal(`<h3>📥 นำเข้าราคาเดือน ส.ค. 69 (T8a)</h3><p style="color:var(--red);margin-top:10px">โหลด/ตรวจสอบไฟล์ไม่สำเร็จ: ${esc(e.message)}</p><div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+    return;
+  }
+  window.__t8a_august_preview = preview; // stashed for doAugustPriceImport() — never recomputed from a different state than what's shown here
+
+  const changedCount = preview.toWrite.filter(w=>w.status==='CHANGED').length;
+  const unchangedCount = preview.toWrite.filter(w=>w.status==='UNCHANGED').length;
+  const newCount = preview.toWrite.filter(w=>w.status==='NEW').length;
+  const noPriceCount = preview.toWrite.filter(w=>w.status==='NO_PRICE').length;
+
+  const errRows = preview.validationErrors.map(e=>`<tr><td class="code-cell">${esc(e.code)}</td><td>${esc(e.name)}</td><td style="color:var(--red)">${esc(e.issue)}</td></tr>`).join('');
+  const reconRows = preview.reconciliation.map(r=>`<tr><td class="code-cell">${esc(r.code)}</td><td>${esc(r.name)}</td></tr>`).join('');
+  const missingRows = preview.skippedMissingFromMaster.map(r=>`<tr><td class="code-cell">${esc(r.code)}</td><td>${esc(r.name)}</td></tr>`).join('');
+  const beyond20Rows = preview.beyond20pct.map(r=>`<tr><td class="code-cell">${esc(r.code)}</td><td>${esc(r.name)}</td><td>${esc(r.status)}</td><td class="tr num" style="color:${Math.abs(r.deltaPct)>=0.99?'var(--txt3)':'var(--warn)'}">${r.deltaPct!=null?(r.deltaPct*100).toFixed(1)+'%':'—'}</td></tr>`).join('');
+  const conflictRows = preview.conflicts.map(c=>`<tr><td class="code-cell">${esc(c.code)}</td><td>${esc(c.name)}</td><td class="tr num">${c.allStoresExVat}</td><td class="tr num">${c.looseExVat}</td><td>${esc(c.note)}</td></tr>`).join('');
+
+  showModal(`
+    <h3>📥 นำเข้าราคาเดือน ส.ค. 69 — Code 206 Bakery, EX VAT (T8a)</h3>
+    <p style="color:var(--txt2);margin-top:8px;font-size:12.5px">
+      แหล่งที่มา: <code>${esc(importData.source)}</code> (sha256 ${esc(preview.sourceSha256.slice(0,16))}…) · effectiveFrom ${esc(preview.effectiveFrom)}
+    </p>
+    ${!preview.canWrite ? `<div style="margin-top:10px;padding:10px 13px;background:var(--red-bg);border-radius:var(--r8);border:1px solid rgba(224,50,68,.3);color:var(--red);font-weight:700;font-size:13px">
+      ❌ ตรวจสอบไม่ผ่าน — จะไม่เขียนอะไรเลยจนกว่าจะแก้ไข (all-or-nothing)
+      ${preview.countErrors.length ? `<div style="font-weight:400;margin-top:4px;font-size:12px">${preview.countErrors.map(esc).join('<br>')}</div>` : ''}
+    </div>` : `<div style="margin-top:10px;padding:10px 13px;background:var(--green-bg);border-radius:var(--r8);border:1px solid rgba(13,159,110,.25);color:var(--green);font-weight:700;font-size:13px">✅ ตรวจสอบผ่านทั้งหมด — พร้อมเขียน</div>`}
+
+    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px">
+      <div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">CHANGED</div><div style="font-size:18px;font-weight:800">${changedCount}</div></div>
+      <div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">Unchanged</div><div style="font-size:18px;font-weight:800">${unchangedCount}</div></div>
+      <div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">NEW</div><div style="font-size:18px;font-weight:800">${newCount}</div></div>
+      <div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">NO PRICE</div><div style="font-size:18px;font-weight:800">${noPriceCount}</div></div>
+    </div>
+    <div style="margin-top:6px;font-size:12px;color:var(--txt3)">
+      ข้าม (Not countable) ${preview.skippedNotCountable.length} รายการ
+      ${preview.skippedMissingFromMaster.length ? ` · ข้าม (ไม่มีในรายการสินค้าจริง) ${preview.skippedMissingFromMaster.length} รายการ` : ''}
+      · รวมเขียน ${preview.toWrite.length} รายการ
+    </div>
+
+    ${preview.skippedMissingFromMaster.length ? `
+    <div style="margin-top:12px">
+      <div style="font-size:12.5px;font-weight:700;color:var(--warn)">⚠️ ${preview.skippedMissingFromMaster.length} รหัสที่ไฟล์ระบุว่า "อยู่ใน Item Master" (อ้างอิง data.json ซึ่งไม่ตรงกับฐานข้อมูลจริง) แต่ไม่มีอยู่จริงใน masterData/items หรือ master_uom.json ของระบบตอนนี้ — ไม่มีที่ให้เขียนสถานะ จึง<b>ข้าม</b>เหมือนกลุ่ม Not countable (ยืนยันแล้วว่าให้ข้าม ไม่ block การนำเข้าที่เหลือ)</div>
+      <div class="tbl-wrap" style="max-height:160px;margin-top:4px">
+        <table class="dtbl"><thead><tr><th>รหัส</th><th>ชื่อ</th></tr></thead><tbody>${missingRows}</tbody></table>
+      </div>
+    </div>` : ''}
+
+    ${preview.reconciliation.length ? `
+    <div style="margin-top:12px">
+      <div style="font-size:12.5px;font-weight:700;color:var(--warn)">⚠️ ${preview.reconciliation.length} รายการที่ไฟล์บอกว่า "Not countable" แต่ master_uom.json (live) มีจริง — ตาม Status-only routing ที่ยืนยันแล้ว จะ<b>ไม่เขียน</b>รายการเหล่านี้ ยังคงค้างเป็น IN_VAT</div>
+      <div class="tbl-wrap" style="max-height:140px;margin-top:4px">
+        <table class="dtbl"><thead><tr><th>รหัส</th><th>ชื่อ</th></tr></thead><tbody>${reconRows}</tbody></table>
+      </div>
+    </div>` : ''}
+
+    <div style="margin-top:12px">
+      <div style="font-size:12.5px;font-weight:700">📊 19 รายการที่ราคาขยับเกิน ±20%</div>
+      <div class="tbl-wrap" style="max-height:180px;margin-top:4px">
+        <table class="dtbl"><thead><tr><th>รหัส</th><th>ชื่อ</th><th>สถานะ</th><th class="tr">เปลี่ยน</th></tr></thead><tbody>${beyond20Rows}</tbody></table>
+      </div>
+      <div style="font-size:11px;color:var(--txt4);margin-top:3px">9 แถวที่แสดง -100% คือแถว NO PRICE ที่ไม่มีราคาใหม่ (คอลัมน์ K ว่าง) ไม่ใช่การเปลี่ยนราคาจริง</div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div style="font-size:12.5px;font-weight:700;color:var(--warn)">🏪 5 รหัสที่ราคาต่างกันระหว่างไฟล์ทุกสาขา vs. ไฟล์เฉพาะสาขา 2/17/57 (ยึดไฟล์ทุกสาขาเป็นค่าเดียว — ระบบมีราคาเดียวต่อสินค้า ไม่รองรับราคาต่อสาขา)</div>
+      <div class="tbl-wrap" style="max-height:140px;margin-top:4px">
+        <table class="dtbl"><thead><tr><th>รหัส</th><th>ชื่อ</th><th class="tr">ทุกสาขา</th><th class="tr">2/17/57</th><th>หมายเหตุ</th></tr></thead><tbody>${conflictRows}</tbody></table>
+      </div>
+    </div>
+
+    ${preview.validationErrors.length ? `
+    <div style="margin-top:12px">
+      <div style="font-size:12.5px;font-weight:700;color:var(--red)">❌ ${preview.validationErrors.length} รายการตรวจสอบไม่ผ่าน</div>
+      <div class="tbl-wrap" style="max-height:160px;margin-top:4px">
+        <table class="dtbl"><thead><tr><th>รหัส</th><th>ชื่อ</th><th>ปัญหา</th></tr></thead><tbody>${errRows}</tbody></table>
+      </div>
+    </div>` : ''}
+
+    <div style="margin-top:12px;padding:10px 13px;background:var(--surface2);border-radius:var(--r8);font-size:12.5px">
+      ฐาน IN_VAT ตอนนี้: <b>${preview.currentInVatCount}</b> รายการ → หลังนำเข้า (คาดการณ์): <b>${preview.projectedInVatAfter}</b> รายการ
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">ปิด (ยังไม่เขียน)</button>
+      ${preview.canWrite ? `<button class="btn btn-blue" onclick="doAugustPriceImport()">📥 ยืนยันนำเข้า (${preview.toWrite.length} รายการ)</button>` : ''}
+    </div>`);
+}
+
+async function doAugustPriceImport(){
+  const preview = window.__t8a_august_preview;
+  if(!preview || !preview.canWrite){ toast('ไม่มี preview ที่ตรวจสอบผ่าน — เปิดหน้าต่างนำเข้าใหม่', 'err'); return; }
+  const byCode = {};
+  preview.toWrite.forEach(w => {
+    if(w.action === 'price'){
+      byCode[w.code] = { price: w.price, priceUom: w.priceUom, priceBasis: 'EX_VAT', priceStatus: null, priceEffectiveFrom: preview.effectiveFrom, priceSource: 'code-206-2026-08' };
+    } else if(w.action === 'no_price'){
+      byCode[w.code] = { price: null, priceUom: null, priceBasis: null, priceStatus: 'NO_CONFIRMED_PRICE', priceEffectiveFrom: preview.effectiveFrom, priceSource: 'code-206-2026-08' };
+    }
+  });
+  const newItems = ITEMS_DATA.map(it => byCode[it.code] ? { ...it, ...byCode[it.code] } : it);
+  closeModal();
+  const changedCount = preview.toWrite.filter(w=>w.status==='CHANGED').length;
+  const unchangedCount = preview.toWrite.filter(w=>w.status==='UNCHANGED').length;
+  const newCount = preview.toWrite.filter(w=>w.status==='NEW').length;
+  const noPriceCount = preview.toWrite.filter(w=>w.status==='NO_PRICE').length;
+  await saveMasterItems(newItems, `นำเข้าราคาเดือน ส.ค. 69 แล้ว ${preview.toWrite.length} รายการ ✅`);
+  await dbPush('logs', {
+    no:'admin', name:(SES && SES.name) || 'admin', ts:Date.now(), action:'augustPriceImport', source:'excel-import',
+    written: preview.toWrite.length, changed: changedCount, unchanged: unchangedCount, new: newCount, noPrice: noPriceCount,
+    skippedNotCountable: preview.skippedNotCountable.length, skippedMissingFromMaster: preview.skippedMissingFromMaster.length,
+    sourceSha256: preview.sourceSha256
+  });
+  window.__t8a_august_preview = null;
 }
 
 /* ════════════════════════════════════════════

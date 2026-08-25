@@ -66,8 +66,9 @@ The original doc lists 9 tickets; T10 and T11 were added after it was written.
 | T9 | 🟡 P2 | Stock-take Excel upload with validation gate | ⛔ **blocked** — see "What still blocks T8/T9" below (Q4 is decided) |
 | T10 | 🔴 P0 | Admin-visible reference band + outlier no-coverage state | ✅ merged |
 | T11 | 🟡 P2 | Snapshot price onto the entry at save time (**prerequisite for T8**) | ✅ merged — bakery's shape diverges from packaging's, see Q3 below |
+| T8a | 🟡 P2 | One-off August 2026 price import (**bakery only**, narrowed from T8, see kickoff doc) | ✅ done — run against production 25 Aug 2026 |
 
-T1–T7, T10 and T11 are done in both repos. **Bakery's T11 diverges from packaging's shape** — see T11's "What's done" section for why.
+T1–T7, T10, T11 and T8a are done in both repos where applicable (T8a is bakery-only). **Bakery's T11 diverges from packaging's shape** — see T11's "What's done" section for why. **T8 proper (the recurring import mechanism) remains open** — T8a only applied one month's numbers, it did not build the upload UI.
 
 ## What's done
 
@@ -267,6 +268,115 @@ been written and never read.
 - `stats/{ym}/itemMedian` will blend stamped and un-stamped price bases in the
   first month a mix occurs. Self-corrects the following month.
 
+### T8a — August 2026 price import, one-off (done)
+
+Narrowed from T8 per the kickoff doc: applied the August 2026 Code 206 Bakery price list
+(EX VAT, valid 1–31 Aug 2026) against production. Did **not** build the recurring import
+mechanism (template download / upload UI / preview screen) — that stays T8, in September,
+against the September list.
+
+**Step 1 — `priceBasis` + `priceStatus` fields, backfill (run 25 Aug 2026).** Added
+`priceBasis` (`'EX_VAT'|'IN_VAT'|null`) and `priceStatus` (`'NO_CONFIRMED_PRICE'|null`) to
+`masterData/items`, and `priceBasis_at_count` alongside T11's `price_at_count`/
+`priceUom_at_count` snapshot. `estCostOf()` gained an explicit guard: `priceStatus ===
+'NO_CONFIRMED_PRICE'` returns `null` *before* falling back to `master_cost.json`'s old IN
+VAT number — without this, "no confirmed price" would have silently rendered the stale
+figure with no error, exactly the "wrong number, no error raised" failure mode this ticket
+existed to prevent. Add/edit item modals now require a VAT basis whenever a price is set by
+hand, and the T6 `master_cost.json` migration button now stamps `IN_VAT` on any
+newly-resolved item too — both close paths that could otherwise reintroduce basis-less
+prices after this ticket. Basis shown wherever a price shows: item master, exports,
+un-stamped-row warnings, per-store detail, entry-screen tooltip — never guessed when
+unrecorded (a pre-T8a stamped entry has no `priceBasis_at_count`; it reads as "ฐาน VAT
+ไม่ระบุ", not a guessed IN_VAT).
+
+Backfill (`computeBasisBackfillPreview`/`showBasisBackfillModal`/`doBasisBackfill`, mirrors
+T6's migration pattern) labelled all 338 then-priced items `IN_VAT` — verified against
+production before and after: 338/338, 0 unresolved, zero unintended field changes (spot-
+checked `price`/`priceUom`/`priceEffectiveFrom`/`priceStatus` on every item), audit log
+present (`source:'admin-override'`). July 2026 dashboard bit-for-bit unchanged after this
+step (154/164, ฿70,508,736.89, band split 102/46/6) — pure basis-labelling, no price moved.
+
+**Step 2 — the August update (run 25 Aug 2026).** Source: `docs/Bakery_Price_Import_2026-08_FILLED.xlsx`,
+extracted by `tools/extract_price_import.py` into the committed `docs/price_import_2026-08.json`
+(only columns A/Code and K/New Price EX VAT are imported, per the brief; the extractor
+self-verifies every count against the kickoff brief's numbers and refuses to write on any
+mismatch — none occurred). `computeAugustPriceImportPreview()`/`showAugustPriceImportModal()`
+re-verify those counts against the *live* item master at run time (not just at extraction
+time) and route strictly by `Status` (column M) — never by the sheet's own `Countable`/`In
+Item Master` columns, which turned out to be computed against the stale `data.json` rather
+than this repo's live `master_uom.json`/`masterData/items`.
+
+Two live-master discrepancies surfaced by the runtime check, both reported rather than
+silently resolved:
+- **83 rows** the sheet marked `Not countable` that the live `master_uom.json` actually has
+  an entry for. Per Status-only routing (explicitly confirmed before running), these stay
+  skipped — still `IN_VAT`, unchanged by this ticket.
+- **24 of the 38 `NO_PRICE`-status codes** don't exist in the live item master or
+  `master_uom.json` at all — confirmed directly against production 25 Aug 2026, not a
+  parsing artifact. The sheet's "In Item Master" column said Y for these (computed against
+  `data.json`, which still has 366 items vs. live's 338). Explicitly confirmed to skip
+  these the same way as `NOT_COUNTABLE` — there is nowhere to write a status for an item
+  that isn't live, and they can never appear on a count screen regardless.
+
+**Written**: 127 rows — 29 `CHANGED` + 61 `Unchanged` + 23 `NEW` → `price`/`priceUom` set,
+`priceBasis:'EX_VAT'`, `priceEffectiveFrom:'2026-08'`, `priceSource:'code-206-2026-08'`; 14
+`NO_PRICE` (of 38 in the file; 24 skipped as above) → `priceStatus:'NO_CONFIRMED_PRICE'`,
+`price`/`priceUom`/`priceBasis` nulled. **Skipped**: 144 `Not countable` + 24
+missing-from-live-master = 168, untouched. Verified item-by-item against a fresh
+production read after the write: 127/127 matched the expected write exactly (0 mismatches),
+211 untouched items confirmed byte-identical to their pre-write state. Audit log entry
+present: `source:'excel-import'`, all per-status counts recorded.
+
+**IN_VAT residual: 338 → 211** (113 moved to `EX_VAT`, 14 moved to `NO_CONFIRMED_PRICE` —
+both leave the `IN_VAT` bucket). This is the size of the mixed-basis population carried
+forward until Ticket 8 proper — the number the project owner asked to be tracked most
+closely. Confirmed by a direct post-write production read (`priceBasis` counts: 211
+`IN_VAT` / 113 `EX_VAT` / 14 `NO_CONFIRMED_PRICE`, summing to 338). The step-2 preview
+modal originally miscalculated this as 225 — it only subtracted the 113 codes moving to
+`EX_VAT` and forgot the 14 `NO_PRICE` codes also leave `IN_VAT` (they move to no-basis, not
+staying `IN_VAT`) — caught and fixed in `computeAugustPriceImportPreview()` immediately
+after the write; the actual write was correct throughout, only this forward-looking display
+number was wrong.
+
+**Two separate no-price populations, not merged, per the brief:**
+- The 38 `NO_PRICE` rows *inside* `PriceImport` (no confirmed price in the Code 206
+  source) — 14 written as `NO_CONFIRMED_PRICE`, 24 skipped as missing-from-master (above).
+- The **42** rows on the workbook's `NoPriceInSource` sheet — a *different* set, confirmed
+  all 42 are live, countable items (`master_uom.json` entries exist) that Code 206 doesn't
+  cover at all. This is a coverage gap in the source document, not a code problem — a
+  question for the Buyer, left unresolved here per the brief. All 42 remain `IN_VAT`,
+  untouched (no import row exists for them to route).
+
+**19 rows beyond ±20%**, listed in the step-2 diff: 10 genuine `CHANGED` price moves
+(largest `922291`, ฿1,340→฿819.67, −38.8%, mostly packaging/box items) and 9 `NO_PRICE`
+rows whose "−100%" is an artifact of the delta formula against an empty New Price cell, not
+an actual price drop.
+
+**5 conflict codes** named per the brief (store 2/17/57 pricing differs from the all-stores
+default used here — the app has one global price per item and cannot represent this):
+`924802`, `213860`, `204345`, `183153`, `182866`. Not resolved — a question for Phat, per
+the brief. Not built: per-store pricing.
+
+**T10 dashboard, before → after (July 2026, the only month with un-stamped — i.e. still
+price-floating — rows; expected movement, not a bug, per T11's design):**
+total cost ฿70,508,736.89 → ฿64,030,013.04 (−9.2%, larger than the ~6.5% pure-VAT effect
+because several `CHANGED` packaging items also moved 20–39% on the underlying price, not
+just the VAT basis); band split 102/46/6 → 103/45/6. 13 stores crossed a boundary: 7 moved
+from above-max into range as packaging costs dropped (4 บางบอน, 37 ชัยภูมิ, 41 เชียงใหม่2,
+43 ชุมพร, 133 รามคำแหง24, 141 ลำลูกกา, 155 ปิ่นเกล้า); 6 moved from in-range below the
+minimum as their totals shrank (50 แม่ริม, 66 พัทยาเหนือ, 70 สุโขทัย, 86 ศรีนครินทร์2, 89
+พิษณุโลก2, 132 สัตหีบ). Reconstructed by re-deriving July's per-store totals from
+`master_cost.json`'s original IN VAT figures (T6's source for every pre-T8a price) —
+matched the captured pre-write baseline to within $0.005, confirming the reconstruction
+(and therefore this delta) is exact.
+
+**Ran within the price validity window** (1–31 Aug 2026; executed 25 Aug 2026, six days of
+headroom). `DB_ROOT` was never set to `'demo'` for this ticket — both writes went straight
+to production per the kickoff doc's explicit build→preview→wait→confirm sequence; every
+number was preview-verified against live data before either write fired, and re-verified
+against a fresh Firebase read after.
+
 ## Departures from the original plan doc
 
 These were verified against actual code/data while implementing T1–T7:
@@ -360,8 +470,12 @@ These are the real blockers. Each needs an owner to act; none is a coding task.
    (T10 was unaffected — 10.1 and 10.2 are read/display changes.)
 
 T11's sequencing requirement is now cleared — it's merged, so bakery's half of T8
-has no outstanding prerequisite. T8 remains blocked on blockers 1–3 above
-(packaging-side item codes and price source, plus the shared `demo/` rules gap).
+has no outstanding prerequisite. T8a (bakery's one-off August price application, see
+above) is also done — T8 proper still needs the recurring upload/preview mechanism built,
+against September's list, and still carries a mixed-basis population (211 IN_VAT / 113
+EX_VAT / 14 NO_CONFIRMED_PRICE after T8a) to reconcile. T8 remains blocked on blockers 1–3 above
+(packaging-side item codes and price source, plus the shared `demo/` rules gap) —
+those are packaging-only; bakery's half is otherwise ready to build.
 
 When starting: `git checkout -b ticket-8-price-import main` (or `ticket-9-…`),
 and confirm `git log origin/main` shows T1–T7, T10 and T11 merged first. Update
