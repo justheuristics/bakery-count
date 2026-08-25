@@ -229,7 +229,12 @@ function normalizeEntry(v){
     subunit_qty: (v.subunit_qty!=null && v.subunit_qty!=='') ? (parseFloat(v.subunit_qty)||0) : 0,
     sub_uom: (v.sub_uom!=null && v.sub_uom!=='') ? String(v.sub_uom) : null,
     legacy: false,
-    counted_at: (v.counted_at!=null) ? v.counted_at : null
+    counted_at: (v.counted_at!=null) ? v.counted_at : null,
+    // T11: price snapshot at save time — must round-trip through here or doSaveEntry()'s
+    // full-month rewrite (it rewrites every row, not just changed ones) would wipe the
+    // stamp on the very next save. Pass through untouched; null means "not yet stamped".
+    price_at_count: (v.price_at_count!=null && v.price_at_count!=='') ? (parseFloat(v.price_at_count)) : null,
+    priceUom_at_count: (v.priceUom_at_count!=null && v.priceUom_at_count!=='') ? String(v.priceUom_at_count) : null
   };
 }
 
@@ -249,9 +254,37 @@ function masterPackSizeOf(code){ const m=MASTER_UOM[code]; return (m && m.pack_s
    static master_cost.json fallback. priceUom can be denominated in either this item's
    packtype OR its sub_uom (constrained to those two at entry time — see showEditItemModal) —
    master_cost.json's cost_vat is always per-packtype (legacy assumption, unchanged). Never
-   guess which unit an unrecognized priceUom means; return null (→ "—") instead. */
+   guess which unit an unrecognized priceUom means; return null (→ "—") instead.
+   T11: a row with a price snapshot (price_at_count + priceUom_at_count, stamped by
+   doSaveEntry()) is priced from itself — see the snapshot branch below — never from the
+   live item master or MASTER_UOM. A malformed/partial stamp falls back rather than
+   producing NaN or a guess. */
 function itemByCode(code){ return ITEMS_DATA.find(i => i.code === code) || null; }
+function hasPriceSnapshot(e){
+  return !!(e && typeof e==='object' && Number.isFinite(e.price_at_count) && e.priceUom_at_count);
+}
 function estCostOf(code, e){
+  const qty    = (e && typeof e==='object' && e.qty!=='' && e.qty!=null) ? Number(e.qty) : 0;
+  const subQty = (e && typeof e==='object' && e.subunit_qty!=null) ? Number(e.subunit_qty) : 0;
+
+  /* T11 snapshot branch — self-contained: price, its denomination AND the pack basis all
+     come from the entry itself (e.pack_size/e.uom/e.sub_uom), never MASTER_UOM. This is the
+     only place entry.pack_size is trusted over the master's — deliberately narrow, so a
+     pre-T11 row (no stamp) always falls through to the byte-for-byte-unchanged branch below,
+     which is what keeps every existing month's total a true read-side no-op. */
+  if(hasPriceSnapshot(e)){
+    const costVat = e.price_at_count, costUom = e.priceUom_at_count;
+    const packSize = Number(e.pack_size) || 0;
+    if(costUom === e.uom){
+      const subRate = packSize>0 ? costVat/packSize : 0;
+      return qty * costVat + subQty * subRate;
+    } else if(costUom === e.sub_uom){
+      const packRate = packSize>0 ? costVat*packSize : 0;
+      return qty * packRate + subQty * costVat;
+    }
+    return null;                                          // stamped priceUom matches neither stamped unit — never guess
+  }
+
   const m = MASTER_UOM[code];
   if(!m) return null;
   const item = itemByCode(code);
@@ -266,8 +299,6 @@ function estCostOf(code, e){
     costUom = m.packtype;                                 // master_cost.json is always per packtype
   }
   const packSize = Number(m.pack_size) || 0;
-  const qty    = (e && typeof e==='object' && e.qty!=='' && e.qty!=null) ? Number(e.qty) : 0;
-  const subQty = (e && typeof e==='object' && e.subunit_qty!=null) ? Number(e.subunit_qty) : 0;
   let packRate, subRate;
   if(costUom === m.packtype){
     packRate = costVat;
@@ -279,6 +310,21 @@ function estCostOf(code, e){
     return null;                                          // priceUom doesn't match either known unit
   }
   return qty * packRate + subQty * subRate;
+}
+/* T11 fallback visibility — "un-stamped ≠ frozen", same idiom as T10's "missing ≠ passed"
+   for the reference band. Un-stamped rows must never look identical to stamped ones
+   anywhere money is shown. ym is the month being rendered (not necessarily the current
+   month — history views pass the month they're showing); adds a staleness note when the
+   item's priceEffectiveFrom (T6, previously written but never read) is later than that
+   month — the live price currently used demonstrably did not apply back then. */
+function priceBasisNote(code, e, ym){
+  if(hasPriceSnapshot(e)) return null;
+  const item = itemByCode(code);
+  const eff = item && item.priceEffectiveFrom;
+  if(eff && ym && eff > ym){
+    return `ราคาปัจจุบัน — ยังไม่ได้ตรึง (ราคานี้มีผลตั้งแต่ ${ymToThai(eff)} ซึ่งอยู่หลังเดือนที่นับ)`;
+  }
+  return 'ราคาปัจจุบัน — ยังไม่ได้ตรึง';
 }
 /* "฿1,234.00 / ถุง" — the UOM is always adjacent to the number, never a bare figure */
 function fmtPrice(item){
@@ -1495,6 +1541,31 @@ async function doSaveEntry(confirmedFlags){
       sub_uom: (!e.legacy && masterSubUomOf(i.code)) || null,   // denormalized from master, same pattern as uom
       counted_at: e.counted_at || Date.now()
     };
+    /* T11: stamp price/priceUom once, never re-stamp. doSaveEntry() rewrites every row of
+       the month on every save (not just changed ones), so an unconditional stamp would
+       silently re-price every untouched row at today's rate each time the store hits
+       บันทึก. Same idiom as counted_at above: keep what's already there if present. An
+       item with no price stays un-stamped rather than stamping price_at_count:0, which
+       would read as "this genuinely cost ฿0". Legacy rows are never stamped. */
+    if(!e.legacy){
+      if(hasPriceSnapshot(e)){
+        rec.price_at_count = e.price_at_count;
+        rec.priceUom_at_count = e.priceUom_at_count;
+      } else {
+        const item = itemByCode(i.code);
+        if(item && item.price!=null && item.priceUom){
+          rec.price_at_count = Number(item.price);
+          rec.priceUom_at_count = item.priceUom;
+          // Write the new stamp back onto the in-memory working entry too, not just the
+          // Firebase-bound rec — doSaveEntry() can run more than once in the same page
+          // session (edit more rows, save again) without an intervening reload, and
+          // without this, hasPriceSnapshot(e) would still see no stamp on the next save
+          // and re-price this row at whatever the item master says by then.
+          e.price_at_count = rec.price_at_count;
+          e.priceUom_at_count = rec.priceUom_at_count;
+        }
+      }
+    }
     const flag = flagMap[i.code];
     if(flag){
       rec.confirmedBy = SES.name || ('สาขา '+SES.no);
@@ -1589,16 +1660,21 @@ async function renderHistory(){
 /* shared per-month detail-row builder — current entry schema + est. cost.
    Used by exportStoreMonth, exportStoreAll, and the admin exports below.
    Empty/uncounted rows get blank numeric cells (not 0). Cost is display-derived
-   (estCostOf), exported here intentionally, still never persisted to Firebase. */
-function buildExportDetailRows(mData){
-  const rows=[['ลำดับ','Class','รหัส','ชื่อสินค้า','จำนวน','หน่วยนับ','เศษ','หน่วยเศษ','ขนาดบรรจุ','ปริมาณรวม(ฐาน)','ต้นทุนประมาณการ — ไม่ใช่มูลค่าอย่างเป็นทางการ']];
+   (estCostOf), exported here intentionally, still never persisted to Firebase.
+   T11: ym is required to date the priceEffectiveFrom staleness check in the
+   ราคาฐาน column — every caller now knows which month it's exporting. */
+function buildExportDetailRows(mData, ym){
+  const rows=[['ลำดับ','Class','รหัส','ชื่อสินค้า','จำนวน','หน่วยนับ','เศษ','หน่วยเศษ','ขนาดบรรจุ','ปริมาณรวม(ฐาน)','ต้นทุนประมาณการ — ไม่ใช่มูลค่าอย่างเป็นทางการ','ราคาฐาน']];
   ITEMS_DATA.forEach(i=>{
     const entry = normalizeEntry(mData[i.code]);
     if(!entry || entry.qty===''||entry.qty==null){
-      rows.push([i.no,i.class,i.code,i.name,'','','','','','','']);
+      rows.push([i.no,i.class,i.code,i.name,'','','','','','','','']);
       return;
     }
     const cost = estCostOf(i.code, entry);
+    // T11: states per row whether this cost is a frozen count-time price or is still
+    // floating on today's item-master price — never let the two look the same.
+    const basisNote = priceBasisNote(i.code, entry, ym);
     rows.push([
       i.no, i.class, i.code, i.name,
       entry.qty,
@@ -1607,7 +1683,8 @@ function buildExportDetailRows(mData){
       entry.sub_uom!=null?entry.sub_uom:'',
       entry.pack_size!=null?entry.pack_size:'',
       totalBaseQty(entry),
-      cost!=null?Number(cost.toFixed(2)):''
+      cost!=null?Number(cost.toFixed(2)):'',
+      basisNote ? basisNote : 'ราคา ณ วันที่นับ'
     ]);
   });
   return rows;
@@ -1617,7 +1694,7 @@ async function exportStoreMonth(ym){
   toast('กำลังสร้าง Excel...');
   const dd=await dbGet(`entries/${SES.no}/${ym}`)||{};
   const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet(buildExportDetailRows(dd));
+  const ws=XLSX.utils.aoa_to_sheet(buildExportDetailRows(dd, ym));
   XLSX.utils.book_append_sheet(wb,ws,ym);
   XLSX.writeFile(wb,`BakeryStock_${SES.no}_${ym}.xlsx`);
   toast('Export สำเร็จ ✅','ok');
@@ -1648,7 +1725,7 @@ async function exportStoreAll(){
   // Detail per month
   months.forEach(ym=>{
     const mData=all[ym]||{};
-    const ws=XLSX.utils.aoa_to_sheet(buildExportDetailRows(mData));
+    const ws=XLSX.utils.aoa_to_sheet(buildExportDetailRows(mData, ym));
     XLSX.utils.book_append_sheet(wb,ws,ym.replace('-','_'));
   });
   XLSX.writeFile(wb,`BakeryStock_${SES.no}_All.xlsx`);
@@ -1779,6 +1856,21 @@ function exceptionQueueCardHtml(exceptions, selYM, coverageStats){
   </div>`;
 }
 
+/* T11: how many of this month's rows are still floating on the live item master
+   instead of a count-time snapshot. Same placement rule as T10's coverageNoteHtml —
+   belongs next to the numbers it qualifies, not buried, and renders even at 0 so
+   "0 floating" is a stated fact rather than an absence of one. */
+function livePriceNoteHtml(countedRows, livePriceRows){
+  if(!countedRows) return '';
+  const pct = Math.round((livePriceRows / countedRows) * 100);
+  const tone = livePriceRows>0 ? 'var(--warn)' : 'var(--txt3)';
+  return `<div class="card" style="margin-bottom:14px;padding:9px 15px;font-size:11.5px;color:var(--txt3);line-height:1.6">
+    <span style="color:${tone};font-weight:700">${fNum(livePriceRows)} แถวยังลอยตามราคาปัจจุบัน</span>
+    จากทั้งหมด ${fNum(countedRows)} แถวในเดือนนี้ (${pct}%) — บันทึกก่อนราคาถูกตรึง ณ วันที่นับ (T11)
+    <div style="color:var(--txt4);margin-top:2px">มูลค่าของแถวเหล่านี้จะเปลี่ยนถ้าราคาตั้งต้นของสินค้าถูกแก้ในภายหลัง — ไม่ใช่ความผิดพลาด แค่ยังไม่ได้ตรึงราคา</div>
+  </div>`;
+}
+
 /* ═══ per-store totals for one month (T10) ═══
    ตัวเลขรวมต่อสาขาต้องมาจากที่เดียว — dashboard, การเทียบกับ reference band และไฟล์ Excel
    ใช้ผลลัพธ์ก้อนเดียวกัน ถ้าคำนวณซ้ำคนละทางเมื่อไหร่ ตัวเลขฝั่ง admin กับฝั่งสาขาจะเริ่มเพี้ยนกัน
@@ -1787,6 +1879,8 @@ function storeMonthTotals(allE, selYM, countableStores){
   const countableNos = new Set(countableStores.map(s=>String(s.n)));
   const costByStore = {}, filledByStore = {};
   const sentNos = new Set();
+  // T11: counted in the same pass filledByStore already runs — no extra Firebase read.
+  let countedRows = 0, livePriceRows = 0;
   Object.keys(allE).forEach(sNo=>{
     if(!countableNos.has(String(sNo))) return; // ไม่นับสาขาที่ปิดแล้ว ณ เดือนที่เลือก แม้จะมีข้อมูลเก่าค้างอยู่
     const mData=(allE[sNo]||{})[selYM]||{};
@@ -1797,11 +1891,13 @@ function storeMonthTotals(allE, selYM, countableStores){
         f++;
         const c = estCostOf(item.code, entry);
         if(c!=null) costSum += c;
+        countedRows++;
+        if(!hasPriceSnapshot(entry)) livePriceRows++;
       }
     });
     if(f>0){ costByStore[String(sNo)]=costSum; filledByStore[String(sNo)]=f; sentNos.add(String(sNo)); }
   });
-  return { costByStore, filledByStore, sentNos };
+  return { costByStore, filledByStore, sentNos, countedRows, livePriceRows };
 }
 
 async function renderAdminDashboardForYM(C, mc, selYM){
@@ -1815,7 +1911,7 @@ async function renderAdminDashboardForYM(C, mc, selYM){
   const countableStores = STORES.filter(s=>isCountableAt(s, selYM));
   const totalStoresAll = countableStores.length;
 
-  const { costByStore, filledByStore, sentNos: sentStoreNos } = storeMonthTotals(allE, selYM, countableStores);
+  const { costByStore, filledByStore, sentNos: sentStoreNos, countedRows, livePriceRows } = storeMonthTotals(allE, selYM, countableStores);
   const selStores = sentStoreNos.size;
   const selItems  = Object.values(filledByStore).reduce((a,b)=>a+b, 0);
   const selCost   = Object.values(costByStore).reduce((a,b)=>a+b, 0);
@@ -2014,6 +2110,8 @@ async function renderAdminDashboardForYM(C, mc, selYM){
     ${classChartHTML}
 
     ${exceptionQueueCardHtml(exceptions, selYM, outlierResult)}
+
+    ${livePriceNoteHtml(countedRows, livePriceRows)}
 
     <div class="card">
       <div class="card-head" style="flex-wrap:wrap;gap:8px">
@@ -2278,7 +2376,8 @@ async function loadSingleStoreDet(sNo, ym, det){
     const entry=normalizeEntry(mData[item.code]);
     if(entry && entry.qty!=='' && entry.qty!=null){
       const cost=estCostOf(item.code, entry);
-      filledItems.push({code:item.code,name:item.name,cls:item.class,no:item.no,qty:entry.qty,uom:entry.uom,cost});
+      const basisNote = priceBasisNote(item.code, entry, ym);
+      filledItems.push({code:item.code,name:item.name,cls:item.class,no:item.no,qty:entry.qty,uom:entry.uom,cost,basisNote});
       totalFilled++;
       if(cost!=null) totalCost+=cost;
     }
@@ -2302,7 +2401,7 @@ async function loadSingleStoreDet(sNo, ym, det){
           <thead><tr><th style="width:44px">No.</th><th style="width:64px">Class</th><th style="width:96px">รหัส</th><th>ชื่อสินค้า</th><th class="tr" style="width:80px">จำนวน</th><th style="width:90px">หน่วยนับ</th><th class="tr" style="width:110px">ประมาณการต้นทุน</th></tr></thead>
           <tbody>
             ${filledItems.length>0
-              ? filledItems.map(r=>`<tr><td class="code-cell">${r.no}</td><td><span class="cls-badge">${esc(r.cls)}</span></td><td class="code-cell">${esc(r.code)}</td><td style="white-space:normal;line-height:1.3">${esc(r.name)}</td><td class="tr num bold">${fNum(r.qty, r.qty%1===0?0:2)}</td><td>${esc(r.uom||'—')}</td><td class="tr num">${r.cost!=null?'≈ '+fNum(r.cost,2):'—'}</td></tr>`).join('')
+              ? filledItems.map(r=>`<tr><td class="code-cell">${r.no}</td><td><span class="cls-badge">${esc(r.cls)}</span></td><td class="code-cell">${esc(r.code)}</td><td style="white-space:normal;line-height:1.3">${esc(r.name)}</td><td class="tr num bold">${fNum(r.qty, r.qty%1===0?0:2)}</td><td>${esc(r.uom||'—')}</td><td class="tr num">${r.cost!=null?'≈ '+fNum(r.cost,2):'—'}${r.basisNote?`<div><span class="pill pill-no" style="font-size:10px;white-space:normal" title="${esc(r.basisNote)}">ราคาปัจจุบัน — ยังไม่ได้ตรึง</span></div>`:''}</td></tr>`).join('')
               : '<tr><td colspan="7" class="tc muted" style="padding:20px">ไม่มีข้อมูลในเดือนนี้</td></tr>'
             }
           </tbody>
@@ -2318,7 +2417,7 @@ async function exportAllStoresMonth(ym){
   const allE=await dbGet('entries')||{};
   const wb=XLSX.utils.book_new();
   const sumRows=[['สาขา','ชื่อสาขา','รายการที่กรอก','ต้นทุนประมาณการรวม — ไม่ใช่มูลค่าอย่างเป็นทางการ']];
-  const detRows=[['สาขา','ชื่อสาขา','Class','รหัสสินค้า','ชื่อสินค้า','จำนวน','หน่วยนับ','เศษ','หน่วยเศษ','ขนาดบรรจุ','ปริมาณรวม(ฐาน)','ต้นทุนประมาณการ']];
+  const detRows=[['สาขา','ชื่อสาขา','Class','รหัสสินค้า','ชื่อสินค้า','จำนวน','หน่วยนับ','เศษ','หน่วยเศษ','ขนาดบรรจุ','ปริมาณรวม(ฐาน)','ต้นทุนประมาณการ','ราคาฐาน']];
   Object.keys(allE).sort((a,b)=>Number(a)-Number(b)).forEach(k=>{
     const mData=(allE[k]||{})[ym]||{};
     const found=STORES.find(s=>String(s.n)===String(k));
@@ -2330,6 +2429,7 @@ async function exportAllStoresMonth(ym){
         f++;
         const cost = estCostOf(item.code, entry);
         if(cost!=null) costSum += cost;
+        const basisNote = priceBasisNote(item.code, entry, ym);
         detRows.push([
           k, sName, item.class, item.code, item.name,
           entry.qty,
@@ -2338,7 +2438,8 @@ async function exportAllStoresMonth(ym){
           entry.sub_uom!=null?entry.sub_uom:'',
           entry.pack_size!=null?entry.pack_size:'',
           totalBaseQty(entry),
-          cost!=null?Number(cost.toFixed(2)):''
+          cost!=null?Number(cost.toFixed(2)):'',
+          basisNote ? basisNote : 'ราคา ณ วันที่นับ'
         ]);
       }
     });
@@ -2356,7 +2457,7 @@ async function exportAdminSingleMonth(sNo,ym){
   const found=STORES.find(s=>String(s.n)===String(sNo));
   const sName=found?found.name:`สาขา ${sNo}`;
   const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet(buildExportDetailRows(mData));
+  const ws=XLSX.utils.aoa_to_sheet(buildExportDetailRows(mData, ym));
   XLSX.utils.book_append_sheet(wb,ws,ym);
   XLSX.writeFile(wb,`BakeryStock_ST${sNo}_${ym}.xlsx`);
   toast('Export สำเร็จ ✅','ok');
@@ -2710,6 +2811,7 @@ function showEditItemModal(idx) {
       <div>
         <label class="flabel">ราคาต่อหน่วย (บาท)</label>
         <input type="number" class="ctrl w100" id="ei_price" step="0.01" min="0" value="${it.price!=null?it.price:''}" placeholder="เช่น 150.00">
+        <div style="font-size:11px;color:var(--txt3);margin-top:3px">เดือนที่มีราคาตรึงไว้แล้ว (T11) จะไม่เปลี่ยน — เดือนที่ยังไม่มีการตรึงราคาจะขยับตามราคาใหม่นี้ทันที</div>
       </div>
       <div>
         <label class="flabel">หน่วยของราคา</label>
@@ -2740,6 +2842,13 @@ async function doEditItem(idx) {
   const priceUom = document.getElementById('ei_priceUom').value;
   if (priceStr !== '' && !priceUom) { toast('กรุณาเลือกหน่วยของราคา', 'err'); return; }
   const hasPrice = priceStr !== '' && priceUom;
+  // T11: this is the screen where a live-price restatement actually originates for every
+  // un-stamped month — flag it here in the confirmation itself, not only leave it to be
+  // discovered later on the dashboard's livePriceNoteHtml() line.
+  const priorItem = ITEMS_DATA[idx];
+  const priorPrice = (priorItem && priorItem.price != null) ? priorItem.price : null; // items predating T6 have no price field at all — treat as null, not undefined
+  const newPrice = hasPrice ? Number(priceStr) : null;
+  const priceChanged = priorItem && priorPrice !== newPrice;
   const newItems = ITEMS_DATA.map((it, i) => i === idx ? {
     ...it, class: cls, name,
     price: hasPrice ? Number(priceStr) : null,
@@ -2747,7 +2856,9 @@ async function doEditItem(idx) {
     priceEffectiveFrom: hasPrice ? (document.getElementById('ei_priceEff').value || currentYM()) : null
   } : it);
   closeModal();
-  await saveMasterItems(newItems, `แก้ไขสินค้า ${ITEMS_DATA[idx].code} แล้ว ✅`);
+  await saveMasterItems(newItems, priceChanged
+    ? 'แก้ไขสินค้าเรียบร้อย — เดือนที่ตรึงราคาแล้วไม่เปลี่ยน เดือนที่ยังไม่ตรึงจะขยับตามราคาใหม่ ✅'
+    : `แก้ไขสินค้า ${ITEMS_DATA[idx].code} แล้ว ✅`);
 }
 
 function confirmDeleteItem(idx) {

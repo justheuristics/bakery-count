@@ -62,12 +62,12 @@ The original doc lists 9 tickets; T10 and T11 were added after it was written.
 | T5 | 🟢 P1 | Export store submission status to Excel (**packaging only** — bakery already had this) | N/A here — see packaging's `HANDOFF.md` |
 | T6 | 🟢 P1 | Price / priceUom / priceEffectiveFrom on bakery item master (**bakery only**) | ✅ merged ([#7](https://github.com/justheuristics/bakery-count/pull/7)) — migration run against production, 338/338 items priced |
 | T7 | 🟢 P1 | Align Thai calendar display (BE) across both apps | ✅ merged ([#8](https://github.com/justheuristics/bakery-count/pull/8)) |
-| T8 | 🟡 P2 | Price list bulk import with preview-diff-confirm | ⛔ **blocked** — see "What still blocks T8/T9" below (Q3 is decided; T11 is now its prerequisite) |
+| T8 | 🟡 P2 | Price list bulk import with preview-diff-confirm | ⛔ **blocked** — see "What still blocks T8/T9" below (Q3 decided and its T11 prerequisite merged; three real blockers remain) |
 | T9 | 🟡 P2 | Stock-take Excel upload with validation gate | ⛔ **blocked** — see "What still blocks T8/T9" below (Q4 is decided) |
 | T10 | 🔴 P0 | Admin-visible reference band + outlier no-coverage state | ✅ merged |
-| T11 | 🟡 P2 | Snapshot price onto the entry at save time (**prerequisite for T8**) | 📋 not started — design decided 25 Aug 2026, see Q3 below |
+| T11 | 🟡 P2 | Snapshot price onto the entry at save time (**prerequisite for T8**) | ✅ merged — bakery's shape diverges from packaging's, see Q3 below |
 
-T1–T7 and T10 are done in both repos.
+T1–T7, T10 and T11 are done in both repos. **Bakery's T11 diverges from packaging's shape** — see T11's "What's done" section for why.
 
 ## What's done
 
@@ -172,6 +172,101 @@ it may be no coverage.
 **10.3 — `master_uom.json` UOM vocabulary: reported, not fixed.** See
 `UOM_VOCAB_REPORT.md`. Zero values edited, per guardrail 4.
 
+### T11 — snapshot price at save time (merged)
+
+Q3, decided 25 Aug 2026: history freezes at count-time prices. `estCostOf()` always
+read `item.price`/`item.priceUom` **live** from the item master (T6) — and, for the
+pack basis, `MASTER_UOM[code].pack_size`/`.packtype`/`.sub_uom` **live** from the
+static `master_uom.json` — so an admin editing one price, or deploying an edited
+`master_uom.json`, silently restated every prior month's reported value, including
+the T10 reference-band comparison. Packaging led T11
+([bd6f420](https://github.com/justheuristics/packaging-count/commit/bd6f420)) with
+`price_at_count` + `pack_at_count`. **Bakery's shape is different — deliberately —
+because bakery's price model differs (T6's `price`/`priceUom`/`priceEffectiveFrom`
+and `estCostOf()`).**
+
+**The divergence, and why.** Two fields stamped: `price_at_count` and
+**`priceUom_at_count`** — not packaging's `pack_at_count`. Bakery's entries have
+stamped `pack_size`/`uom`/`sub_uom` since §3 already; the gap was never a missing
+field, it was `estCostOf()` not reading them. So no new pack field was needed —
+`estCostOf()`'s new snapshot branch (ahead of its existing item-master/`MASTER_COST`
+branch, [app.js](app.js)) reads `e.pack_size`/`e.uom`/`e.sub_uom` instead of
+`MASTER_UOM[code]`'s, but only when `hasPriceSnapshot(e)` is true. What bakery needs
+that packaging doesn't is `priceUom_at_count`: bakery's price carries a
+denomination (T6's `priceUom`, either the item's packtype **or** its sub_uom) —
+packaging's price is always per `packCount`, no unit ambiguity to freeze.
+`price_at_count` keeps packaging's exact field name on purpose: it's what T8's
+importer and any cross-app tooling will look for.
+
+**Rejected alternative — using `priceEffectiveFrom` instead of a snapshot.**
+Doesn't work: the item master holds exactly one price version, so
+`priceEffectiveFrom` says "this price applies from month X onward," never what the
+price was before X. Editing the price still restates every month ≥ X. It's a useful
+*staleness signal* (below), not a substitute — and until T11, it was written by T6
+and never read anywhere.
+
+**Stamped once, never re-stamped**, mirroring `counted_at: e.counted_at ||
+Date.now()`'s idiom right above it in `doSaveEntry()`: an item with no price stays
+un-stamped (never `price_at_count: 0`, which would read as "this genuinely cost
+฿0"), legacy rows are never stamped, and a row that already carries a stamp keeps
+it regardless of what the item master says by the time of a later save. **Bug found
+and fixed while building this**: the stamp must also be written back onto the
+in-memory `ENTRY_DATA[code]` object, not just the Firebase-bound `rec` — otherwise
+a second `doSaveEntry()` call in the same page session (edit more rows, save again,
+no reload) can't see its own prior stamp and re-prices the row at whatever the item
+master says by then. Caught by testing two saves in one session against `demo/`
+before this was added; without it, "never re-stamp" silently failed exactly the
+scenario Q3 exists to prevent.
+
+**No backfill** — every record that existed before this ticket keeps reading the
+live master (both price and pack), same as today. Verified against production
+2026-07 data before and after: submitted-store count (154/164), total items
+(36,180), total est. cost (฿70,508,736.89), the T10 band summary (102 in-range / 46
+out-of-band / 6 no-band), and stores 153 and 159's figures were all
+**bit-for-bit unchanged** — the snapshot branch never fires on an un-stamped row,
+so this is a true read-side no-op.
+
+**Measured, not fixed: the pack-basis split this leaves open.** Before this ticket,
+`totalBaseQty()` (T2/T10's outlier and cost math) already used `entry.pack_size`
+while `estCostOf()` used `MASTER_UOM[code].pack_size` on the *same* entry — the
+source of flag B. Scanned all of production `entries/`: **47 of 36,121 (0.13%)
+non-legacy counted rows** have `entry.pack_size` disagreeing with
+`MASTER_UOM[code].pack_size`, all 47 in store 155 / 2026-07, and all 47 also have
+`entry.uom`/`entry.sub_uom` unset (`null`) — a pre-existing §3-era data-quality gap
+in that one store/month, not something T11 introduced. Per the decided approach,
+`estCostOf()`'s snapshot branch trusts the entry's own pack basis **only when
+`hasPriceSnapshot(e)` is true** — so these 47 pre-T11 rows keep reading
+`MASTER_UOM` exactly as before, unchanged, and will self-heal the moment store 155
+re-saves that month under T11. Not backfilled, for the same reason nothing else is.
+
+**Fallback visibility — "un-stamped ≠ frozen," T10's "missing ≠ passed" idiom.** A
+muted pill (`ราคาปัจจุบัน — ยังไม่ได้ตรึง`) on un-stamped rows in the admin
+per-store detail table (`loadSingleStoreDet()`); a `ราคาฐาน` column in both
+`buildExportDetailRows()`-based exports and `exportAllStoresMonth()`'s Detail
+sheet, stating `ราคา ณ วันที่นับ` vs. the same pill text per row; a
+`livePriceNoteHtml()` card on the admin dashboard (modelled on T10's
+`coverageNoteHtml()`, same placement rule — next to the numbers it qualifies,
+renders even at 0) counted for free inside `storeMonthTotals()`'s existing loop; and
+a note plus a changed-price warning toast on the item edit modal
+(`showEditItemModal()`/`doEditItem()`), the screen where a live-price restatement
+actually originates.
+
+**`priceEffectiveFrom` staleness signal — included, not deferred.** On an
+**un-stamped** row, when the item's `priceEffectiveFrom` is later than the counted
+month, the pill/export text names the effective month (BE) — the live price being
+shown demonstrably did not apply back then. First real use of a T6 field that had
+been written and never read.
+
+**Not in scope, verified and recorded rather than fixed:**
+- `doSaveEntry()` drops T2's `confirmedBy`/`confirmedAt`/`flagReason` on a re-save
+  of a row that no longer re-flags (same class of bug packaging's T11 fixed in
+  `saveEditedRecord()` — but bakery has no equivalent admin inline-edit path;
+  `doSaveEntry()` is the only writer to `entries/`, and it's store-driven). Mostly
+  self-healing (a row that still flags re-prompts and re-stamps its confirmation
+  fields); left as a known gap rather than widening this ticket.
+- `stats/{ym}/itemMedian` will blend stamped and un-stamped price bases in the
+  first month a mix occurs. Self-corrects the following month.
+
 ## Departures from the original plan doc
 
 These were verified against actual code/data while implementing T1–T7:
@@ -230,14 +325,14 @@ not reopen them without a new instruction from the project owner.
   production locations are all genuine stores, so there was never a
   classification problem here. This entry exists for parity with packaging's
   `HANDOFF.md`.)*
-- **Q3 — DECIDED: snapshot the price onto the entry at save time.** History
-  freezes at count-time prices. **This is not implemented by T10 — it is T11, and
-  T11 is a prerequisite for T8.** See the T11 row in the ticket table; the design
-  is described there and only there, so there is one description of it rather
-  than two that can drift apart. **Until T11 lands, `estCostOf()` still reads the
-  live master price for every month, so historical totals are not yet stable** —
-  editing a price on the item master today silently restates every prior month's
-  reported value, including the band comparison T10 just put on the admin screen.
+- **Q3 — DECIDED and IMPLEMENTED: snapshot the price onto the entry at save
+  time.** History freezes at count-time prices. **Implemented by T11** — see its
+  "What's done" section above for the shape (`price_at_count` +
+  `priceUom_at_count`, deliberately different from packaging's
+  `pack_at_count`), the no-backfill decision, and the verification numbers.
+  `estCostOf()` now prefers a row's own snapshot when present and only falls
+  back to the live master when it isn't — so a price edit today only moves
+  months that were never stamped, not the ones that were.
 - **Q4 — DECIDED: store-only upload.** No admin-on-behalf path in T9, and
   therefore no `submittedBy` case-branching to build. **Known open consequence,
   recorded honestly:** the de facto recovery path when a store cannot upload is
@@ -264,10 +359,11 @@ These are the real blockers. Each needs an owner to act; none is a coding task.
    **Owner: project owner.**
    (T10 was unaffected — 10.1 and 10.2 are read/display changes.)
 
-Plus one sequencing note that is not a blocker but is easy to miss: **T11 must
-land before T8**, per the Q3 decision above.
+T11's sequencing requirement is now cleared — it's merged, so bakery's half of T8
+has no outstanding prerequisite. T8 remains blocked on blockers 1–3 above
+(packaging-side item codes and price source, plus the shared `demo/` rules gap).
 
-When starting: `git checkout -b ticket-8-price-import main` (or `ticket-9-…` /
-`ticket-11-…`), and confirm `git log origin/main` shows T1–T7 and T10 merged
-first. Update this section as blockers clear, so the file stays a living resume
-point. Don't delete the guardrails/departures sections — they stay relevant.
+When starting: `git checkout -b ticket-8-price-import main` (or `ticket-9-…`),
+and confirm `git log origin/main` shows T1–T7, T10 and T11 merged first. Update
+this section as blockers clear, so the file stays a living resume point. Don't
+delete the guardrails/departures sections — they stay relevant.
