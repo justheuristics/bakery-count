@@ -655,6 +655,16 @@ let CURVIEW='';
 function go(id){CURVIEW=id;setActive(id);({dashboard:renderDashboard,entry:renderEntry,history:renderHistory,storedata:renderStoreData,monthcontrol:renderMonthControl,clearall:renderClearAll,manageitems:renderManageItems,managestores:renderManageStores,storestatus:renderStoreStatus,presence:renderPresence}[id]||function(){})();}
 
 /* ════ AUTH ════ */
+/* ข้อความ error ตั้งต้นของหน้า login (ตรงกับ index.html) — ต้อง restore กลับทุกครั้ง
+   หลังแสดงข้อความเฉพาะกรณี ไม่งั้นการ login ผิดครั้งถัดไปจะแสดงข้อความเก่าค้างไว้ */
+const LOGIN_ERR_DEFAULT = 'ชื่อผู้ใช้ หรือ รหัสผ่าน ไม่ถูกต้อง';
+function showLoginErr(msg){
+  const err = document.getElementById('loginErr');
+  if(!err) return;
+  err.textContent = msg || LOGIN_ERR_DEFAULT;
+  err.style.display = 'block';
+  setTimeout(()=>{ err.style.display='none'; err.textContent = LOGIN_ERR_DEFAULT; }, 3000);
+}
 function initLogin(){
   document.getElementById('loginForm').addEventListener('submit',e=>{
     e.preventDefault();
@@ -662,8 +672,14 @@ function initLogin(){
     const p=document.getElementById('fPass').value;
     if(u===ADMIN.u&&p===ADMIN.p){SES={role:'admin',name:ADMIN.name};saveSes(SES);startApp();return;}
     const st=STORES.find(s=>s.u===u&&s.p===p);
+    /* สาขาที่ปิดแล้ว (ไม่ countable ณ เดือนปัจจุบัน) — credential ถูกต้อง แต่ไม่ให้เข้าใช้งาน
+       ใช้ isCountableAt() ตัวเดียวกับ dashboard/report เพื่อไม่ให้สถานะสาขาแตกกันคนละที่ */
+    if(st && !isCountableAt(st, currentYM())){
+      showLoginErr('สาขานี้ปิดการใช้งานแล้ว — กรุณาติดต่อผู้ดูแลระบบ');
+      return;
+    }
     if(st){SES={role:'store',no:st.n,name:st.name,u:st.u};saveSes(SES);startApp();return;}
-    const err=document.getElementById('loginErr');err.style.display='block';setTimeout(()=>err.style.display='none',3000);
+    showLoginErr(LOGIN_ERR_DEFAULT);
   });
   document.getElementById('logoutBtn').addEventListener('click',()=>{
     cleanupPresence();
@@ -1172,6 +1188,20 @@ async function renderEntry(){
   const C=document.getElementById('content');
   C.innerHTML='<div class="card tc" style="padding:40px;color:var(--txt3)">⏳ กำลังโหลด...</div>';
 
+  /* สาขาปิดแล้ว — แสดงหน้าล็อกแทนตารางบันทึก (ประวัติเดือนเก่ายังดูได้จากเมนู "ประวัติ") */
+  const selfStore = STORES.find(s=>String(s.n)===String(SES.no));
+  if(!selfStore || !isCountableAt(selfStore, currentYM())){
+    C.innerHTML=`
+      <div class="month-lock-banner">
+        <div class="lock-icon">🔒</div>
+        <div class="lock-text">
+          <div class="lock-title">สาขานี้ปิดการใช้งานแล้ว</div>
+          <div class="lock-sub">ไม่สามารถบันทึกการตรวจนับได้ — ข้อมูลเดือนที่ผ่านมายังดูและ Export ได้ตามปกติ กรุณาติดต่อผู้ดูแลระบบหากต้องการเปิดใช้งานอีกครั้ง</div>
+        </div>
+      </div>`;
+    return;
+  }
+
   // โหลดข้อมูลเดือน + ตรวจสอบสถานะ
   const mc = await getMonthControl();
 
@@ -1571,6 +1601,12 @@ async function doSaveEntry(confirmedFlags){
   // ตรวจสอบ active อีกครั้งก่อน save
   const isActive = await isMonthActive(ENTRY_YM);
   if(!isActive){ toast('เดือนนี้ Admin ยังไม่เปิด Active — ไม่สามารถบันทึกได้','err'); setBtn(btn,false); _saveInProgress=false; return; }
+  /* สาขาปิดแล้ว — กันเขียนซ้ำจาก session ที่เปิดค้างไว้ก่อนถูกปิด (ตรวจที่เดือนที่กำลังบันทึก
+     ไม่ใช่เดือนปัจจุบัน: เดือนที่ยังอยู่ในช่วง effective ของสาขายังแก้ได้ตามปกติ) */
+  const _selfStore = STORES.find(s=>String(s.n)===String(SES.no));
+  if(!_selfStore || !isCountableAt(_selfStore, ENTRY_YM)){
+    toast('สาขานี้ปิดการใช้งานแล้ว — ไม่สามารถบันทึกได้','err'); setBtn(btn,false); _saveInProgress=false; return;
+  }
 
   /* ══ แต่ละสาขาเขียนเฉพาะ path ของตัวเอง (entries/{storeNo}/...)
      Firebase Multi-path update ที่ไม่ overlap กัน = Atomic + Concurrent-safe ══
@@ -2600,6 +2636,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.getElementById('sbBd').addEventListener('click',closeSB);
   const ses=loadSes();
+  /* session ที่ค้างอยู่ต้องผ่าน gate เดียวกับ login — ไม่งั้นสาขาที่เพิ่งถูกปิด
+     ยังใช้งานต่อได้จนกว่าจะปิด tab (sessionStorage) */
+  if(ses && ses.role==='store'){
+    const st = STORES.find(s=>String(s.n)===String(ses.no));
+    if(!st || !isCountableAt(st, currentYM())){ clearSes(); return; }
+  }
   if(ses){SES=ses;startApp();}
 });
 
