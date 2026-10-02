@@ -67,7 +67,8 @@ The original doc lists 9 tickets; T10 and T11 were added after it was written.
 | T10 | 🔴 P0 | Admin-visible reference band + outlier no-coverage state | ✅ merged |
 | T11 | 🟡 P2 | Snapshot price onto the entry at save time (**prerequisite for T8**) | ✅ merged — bakery's shape diverges from packaging's, see Q3 below |
 | T8a | 🟡 P2 | One-off August 2026 price import (**bakery only**, narrowed from T8, see kickoff doc) | ✅ done — run against production 25 Aug 2026 |
-| T8b | 🟡 P2 | One-off September 2026 price import + re-price of saved September entries (**bakery only**) | 🛠 **built and verified in `demo/`, NOT yet run against production** — see "T8b" below |
+| T8b | 🟡 P2 | September 2026 price import + re-price of saved September entries (**bakery only**) | ✅ run against production 2 Oct 2026 — see "T8b" below |
+| T8c | 🟡 P2 | Month-agnostic version of T8b + "freeze" of months that were never price-stamped (**bakery only**) | ✅ built and verified in `demo/`; the freeze has **not** been run against production — see "T8c" below |
 
 T1–T7, T10, T11 and T8a are done in both repos where applicable (T8a is bakery-only). **Bakery's T11 diverges from packaging's shape** — see T11's "What's done" section for why. **T8 proper (the recurring import mechanism) remains open** — T8a only applied one month's numbers, it did not build the upload UI.
 
@@ -378,18 +379,18 @@ to production per the kickoff doc's explicit build→preview→wait→confirm se
 number was preview-verified against live data before either write fired, and re-verified
 against a fresh Firebase read after.
 
-### T8b — September 2026 price import (built 2 Oct 2026; **not yet fired against production**)
+### T8b — September 2026 price import (run against production 2 Oct 2026)
 
 Source: `Bakery - September.zip` (three Code 206 workbooks, prices confirmed 1–30 Sep 2026): the
 main **FBK** list (all stores) plus two store-specific lists (stores 2/17/57, and the
-22/350/121/138… group). Extracted by `tools/extract_price_import_2026-09.py` (self-verifying;
-refuses to write on any count mismatch) into the committed `docs/price_import_2026-09.json`.
+22/350/121/138… group). Extracted (by the original September-only script, since replaced by
+`tools/extract_price_import_monthly.py`, which reproduces the same data) into the committed `docs/price_import_2026-09.json`.
 Rules, decided with the project owner: EX VAT only · main FBK price wins · a store-file price is
 used only for a code FBK does not price · rows saying "use store retail cost" carry no price and
 are never written as one · items not live in the app (no `master_uom.json` conversion) are
 **skipped, never added** · the app has one global price per item, so store membership is context only.
 
-Two separate writes, each with its own preview and its own confirm (admin → จัดการรายการสินค้า):
+Two separate writes, each with its own preview and its own confirm (these were the two buttons then; they are now inside the "💲 ราคารายเดือน" hub, see T8c):
 
 1. **📥 นำเข้าราคา ก.ย. 69 (ขั้น 1)** — `masterData/items`: `price`, `priceUom` (kept), `priceBasis:'EX_VAT'`,
    `priceEffectiveFrom:'2026-09'`, `priceSource:'code-206-2026-09'`. Plan against production on 2 Oct:
@@ -409,7 +410,9 @@ Two separate writes, each with its own preview and its own confirm (admin → �
    on 2 Oct: 18,359 rows / 161 stores / 141 codes; 8,464 already current; 19,599 rows are for items not in the
    price file and stay as they are.
 
-**Order and timing.** Run step 1 then step 2, when no store has the count page open (a tab loaded before step 2
+**Run result (2 Oct 2026).** Fired from an admin session against production, in order. Step 1: 206 written, verified item-by-item against an independent recomputation (206 ok, 164 untouched, 0 other fields changed). Step 2: 18,359 rows / 161 stores re-priced; all 46,422 September rows then compared against a pre-run restore point — 18,359 at the planned price, 28,063 price fields untouched, **0 non-price fields changed, 0 problems**. Audit log entries `septemberPriceImport` / `septemberEntryReprice`. Re-running either is a no-op (step 1: all 206 now UNCHANGED; step 2: 0 writes). Five stores were online during the run (September was already closed); the write is idempotent so a re-run would catch any stale-tab revert. Restore points live in the git-excluded `backups/` folder on the machine that ran it.
+
+**Order and timing (as planned).** Run step 1 then step 2, when no store has the count page open (a tab loaded before step 2
 and saved after it would write the old stamps back; the post-write check would show it). `DB_ROOT` stays `''`;
 the run is from an admin session, same as T8a.
 
@@ -434,6 +437,42 @@ adding them also needs a verified Class and the `master_uom.json` entry first (s
 corrected code of live `873989`, deferred since 2 Sep; `202955` is probably a typo for live `202995`.
 Unresolved by design: 17 codes are priced differently between the main file and a store file (main file used; the
 modal lists them) — per-store pricing is not supported.
+
+### T8c — monthly import + freeze (built 2 Oct 2026)
+
+T8b's code was September-hard-wired; T8c makes it month-agnostic and adds the freeze. Everything is reached from one
+admin button, **💲 ราคารายเดือน (นำเข้า / ปรับ / ตรึง)** on the item-management screen, with a month picker.
+
+- `tools/extract_price_import_monthly.py --month YYYY-MM "<zip or folder>"` → `docs/price_import_<month>.json`. It
+  takes any number of store-specific workbooks (keyed `S<first store no.>`), **refuses unless the Thai month + BE year
+  printed on every sheet equals `--month`** (so last month's files cannot be imported as this month's), and keeps all
+  T8b rules (EX VAT only, FBK wins, store file only for codes FBK doesn't price, "-" rows never written as a price).
+  Hand-verified per-file counts exist only for 2026-09; for any other month the printed per-file counts are the review.
+- **(ข) นำเข้าราคา / (ค) ปรับราคาที่ตรึงในรายการนับ** — T8b's two actions, unchanged in behaviour, now for the chosen month
+  (`priceEffectiveFrom`/`priceSource:'code-206-<month>'` follow the month). Logs: `monthlyPriceImport`, `monthlyEntryReprice`.
+- **(ก) 🧊 ตรึงราคาเดือนที่ยังลอยอยู่ (freeze)** — pins months that pre-date T11 (never price-stamped), so a later price import
+  can no longer restate them. A row is stamped exactly as `doSaveEntry()` would have (item master's `price`/`priceUom`/
+  `priceBasis` now) **only if that leaves the row's estimated value unchanged to the cent**; otherwise it is skipped and
+  listed. So freezing never moves a total — it pins the number already on screen. Writes only `price_at_count`,
+  `priceUom_at_count`, `priceBasis_at_count` at their exact paths; refuses months still open for counting; backup →
+  per-store fresh read → write → post-write check (non-price fields identical, month total unchanged); idempotent; log `monthlyFreeze`.
+  Never stamps: legacy bare-number rows (no unit — stamping would guess one), items with no price / `NO_CONFIRMED_PRICE`.
+
+**What this means for the existing months (production, 2 Oct 2026, read-only plan):** **June 2026 cannot be frozen** — all
+54,106 rows are legacy bare numbers with no unit, so it will keep restating whenever prices change (accepted; stamping
+would need a guessed unit). **July 2026: 34,286 rows / 154 stores can be frozen** (≈฿67.7M); 244 are skipped because the
+entry's own pack_size/uom disagree with `master_uom.json` (e.g. 120131/120136 — they would be valued differently once
+stamped), 1,591 have no price, 148 are legacy. August and September are already stamped except rows for items that had no
+price at save time (1,860 / 1,750): if a later import gives such an item its first price, those rows will start to float on it.
+
+**Recommended order for a new month:** keep the previous month closed → freeze (ก) → import (ข) → re-price (ค) only if stores
+have already counted the new month. Freeze **before** importing, otherwise the months freeze at the new prices.
+
+**Verified (2 Oct 2026), all under `DB_ROOT='demo'`** (scratch copy; fixtures incl. rows with null uom, legacy values, pre-stamped,
+unpriced, qty 0, extra fields, and an open month): freeze stamped exactly the independently re-derived 2,911 rows (valuation
+rules re-implemented in Python), total unchanged to the cent, 0 non-price fields changed, open month refused, re-run wrote nothing;
+steps (ข)/(ค) run for a different month (fake 2026-10 file) wrote exactly the expected 206 / 133 rows. `demo/` restored afterwards.
+Extractor: reproduces September's data and refuses a wrong-month zip. Nothing in T8c has been fired against production.
 
 ## Departures from the original plan doc
 

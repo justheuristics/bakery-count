@@ -2783,8 +2783,7 @@ function buildManageItemsView(C) {
           <button class="btn btn-secondary btn-sm" onclick="showMasterCostMigrationModal()">📥 ย้ายราคาจาก master_cost.json</button>
           <button class="btn btn-secondary btn-sm" onclick="showBasisBackfillModal()">🏷️ ตั้งฐาน VAT ย้อนหลัง (T8a)</button>
           <button class="btn btn-blue btn-sm" onclick="showAugustPriceImportModal()">📥 นำเข้าราคา ส.ค. 69 (T8a)</button>
-          <button class="btn btn-blue btn-sm" onclick="showSeptemberPriceImportModal()">📥 นำเข้าราคา ก.ย. 69 (ขั้น 1)</button>
-          <button class="btn btn-blue btn-sm" onclick="showSeptemberEntryRepriceModal()">🔁 ปรับราคาที่ตรึงใน ก.ย. (ขั้น 2)</button>
+          <button class="btn btn-blue btn-sm" onclick="showMonthlyPriceHub()">💲 ราคารายเดือน (นำเข้า / ปรับ / ตรึง)</button>
           <button class="btn btn-secondary btn-sm" onclick="renderManageItems()">🔄 รีเฟรช</button>
         </div>
       </div>
@@ -3397,31 +3396,33 @@ async function doAugustPriceImport(){
 }
 
 /* ════════════════════════════════════════════
-   [September 2026] Code 206 price import — TWO separate writes, each previewed and
-   confirmed on its own (guardrail 9):
-     (A) masterData/items  — price / priceUom / priceBasis / priceEffectiveFrom / priceSource
-     (B) entries/{store}/2026-09/{code} — ONLY price_at_count + priceBasis_at_count
-   Source: docs/price_import_2026-09.json (tools/extract_price_import_2026-09.py), the three
-   September workbooks. EX VAT only; main FBK price wins; a store-file price is used only for
-   a code FBK doesn't price. Items that are not live in the app (no master_uom.json
-   conversion) are skipped, never added here. Rows saying "use store retail cost" carry no
-   price and are never written as one.
+   [T8b/T8c] Monthly Code 206 price import — three separate, individually previewed and
+   confirmed actions (guardrail 9), opened from the "💲 ราคารายเดือน" hub on the
+   item-management screen. The month is chosen in the hub; nothing here is month-specific.
+     (1) masterData/items  — price / priceUom / priceBasis / priceEffectiveFrom / priceSource
+     (2) entries/{store}/{ym}/{code} — ONLY price_at_count + priceBasis_at_count (re-price
+         rows the stores already saved for that month)
+     (3) entries/{store}/{ym}/{code} — ONLY price_at_count + priceUom_at_count (+ basis):
+         "freeze" months that were never price-stamped (June/July 2026 pre-date T11)
+   Source for (1)/(2): docs/price_import_{ym}.json, produced by
+   tools/extract_price_import_monthly.py --month {ym} from that month's Code 206 workbooks.
+   EX VAT only; main FBK price wins; a store-file price is used only for a code FBK does not
+   price. Items not live in the app (no master_uom.json conversion) are skipped, never added.
+   Rows saying "use store retail cost" carry no price and are never written as one.
 
-   (B) is the one deliberate exception to T11's "stamped once, never re-stamped": the owner
-   decided (2 Oct 2026) that already-saved September rows are re-priced at September prices.
-   It writes ONLY the two price leaves at their exact paths - never a whole row - so qty,
-   uom, pack_size, subunit_qty, sub_uom, counted_at and the T2 confirmation fields cannot be
-   touched. Un-stamped rows are not written: they read the live item master, so (A) already
-   re-prices them. Other months are never written.
+   (2) is the one deliberate exception to T11's "stamped once, never re-stamped" (owner
+   decision, 2 Oct 2026). Both (2) and (3) write only the named price leaves at their exact
+   paths — never a whole row — so qty, uom, pack_size, subunit_qty, sub_uom, counted_at and
+   the T2 confirmation fields cannot be touched, and other months are never written.
 ════════════════════════════════════════════ */
-const SEP_IMPORT_YM = '2026-09';
-let SEPTEMBER_PRICE_IMPORT_DATA = null;
-async function loadSeptemberPriceImportData(){
-  if(SEPTEMBER_PRICE_IMPORT_DATA) return SEPTEMBER_PRICE_IMPORT_DATA;
-  const res = await fetch('docs/price_import_2026-09.json');
-  if(!res.ok) throw new Error('โหลด price_import_2026-09.json ไม่สำเร็จ (' + res.status + ')');
-  SEPTEMBER_PRICE_IMPORT_DATA = await res.json();
-  return SEPTEMBER_PRICE_IMPORT_DATA;
+let PRICE_IMPORT_YM = null;
+const PRICE_IMPORT_DATA = {};
+async function loadPriceImportData(ym){
+  if(PRICE_IMPORT_DATA[ym]) return PRICE_IMPORT_DATA[ym];
+  const res = await fetch(`docs/price_import_${ym}.json`, { cache:'no-store' });
+  if(!res.ok) throw new Error(`ไม่พบ docs/price_import_${ym}.json (${res.status}) — สร้างด้วย tools/extract_price_import_monthly.py --month ${ym} แล้ว deploy/รีเฟรชก่อน`);
+  PRICE_IMPORT_DATA[ym] = await res.json();
+  return PRICE_IMPORT_DATA[ym];
 }
 
 function downloadJsonFile(filename, obj){
@@ -3432,15 +3433,15 @@ function downloadJsonFile(filename, obj){
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
-function sepApplyToItems(items, toWrite){
+function priceImportApplyToItems(items, toWrite, importData){
   const byCode = {};
-  toWrite.forEach(w => { byCode[w.code] = { price: w.price, priceUom: w.priceUom, priceBasis: 'EX_VAT', priceStatus: null, priceEffectiveFrom: SEP_IMPORT_YM, priceSource: 'code-206-2026-09' }; });
+  toWrite.forEach(w => { byCode[w.code] = { price: w.price, priceUom: w.priceUom, priceBasis: 'EX_VAT', priceStatus: null, priceEffectiveFrom: importData.effectiveFrom, priceSource: importData.priceSource }; });
   return items.map(it => byCode[it.code] ? { ...it, ...byCode[it.code] } : it);
 }
 
 /* storeMonthTotals() evaluated against a hypothetical item master (estCostOf reads the
    global ITEMS_DATA for un-stamped rows) — swapped synchronously and always restored. */
-function sepTotalsFor(allE, ym, items){
+function monthTotalsFor(allE, ym, items){
   const saved = ITEMS_DATA;
   ITEMS_DATA = items;
   try {
@@ -3451,7 +3452,43 @@ function sepTotalsFor(allE, ym, items){
   } finally { ITEMS_DATA = saved; }
 }
 
-function computeSeptemberPriceImportPreview(importData){
+const priceImportMonths = allE => [...new Set(Object.values(allE).flatMap(s => Object.keys(s || {})))].sort();
+const piPct = d => d == null ? '—' : (d >= 0 ? '+' : '') + (d * 100).toFixed(1) + '%';
+const piCard = (l, v) => `<div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">${l}</div><div style="font-size:18px;font-weight:800">${v}</div></div>`;
+const piSec = (color, title, inner) => `<div style="margin-top:12px"><div style="font-size:12.5px;font-weight:700;color:${color}">${title}</div>${inner}</div>`;
+const piTbl = (head, body, max) => `<div class="tbl-wrap" style="max-height:${max||170}px;margin-top:4px"><table class="dtbl"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+const piBox = (bg, color, html) => `<div style="margin-top:10px;padding:10px 13px;background:${bg};border-radius:var(--r8);color:${color};font-weight:700;font-size:13px">${html}</div>`;
+
+/* ── hub ── */
+function showMonthlyPriceHub(){
+  const ym0 = PRICE_IMPORT_YM || currentYM();
+  showModal(`
+    <h3>💲 ราคารายเดือน — นำเข้า / ปรับ / ตรึง</h3>
+    <p style="color:var(--txt2);margin-top:8px;font-size:12.5px;line-height:1.7">
+      ทุกปุ่มแสดง preview ก่อนเสมอ และไม่เขียนอะไรจนกว่าจะกดยืนยัน — ไม่แตะจำนวนที่สาขานับ (เขียนเฉพาะฟิลด์ราคา)
+    </p>
+    <div style="margin-top:12px"><label class="flabel">เดือนของใบราคา (Code 206)</label>
+      <input type="month" class="ctrl w100" id="pi_ym" value="${esc(ym0)}"></div>
+    <div style="margin-top:12px;font-size:12px;color:var(--txt3);line-height:1.7">
+      ลำดับที่แนะนำสำหรับเดือนใหม่: <b>(ก)</b> ตรึงเดือนเก่าที่ยังไม่ตรึงก่อน ·
+      <b>(ข)</b> นำเข้าราคาเข้ารายการสินค้า · <b>(ค)</b> ปรับราคาที่ตรึงในรายการนับ — เฉพาะถ้าสาขานับเดือนนั้นไปแล้ว
+    </div>
+    <div class="modal-actions" style="flex-wrap:wrap;gap:8px;margin-top:14px">
+      <button class="btn btn-secondary" onclick="showFreezeMonthsModal()">🧊 (ก) ตรึงราคาเดือนที่ยังลอยอยู่</button>
+      <button class="btn btn-blue" onclick="const y=priceHubYM(); if(y) showPriceImportModal(y)">📥 (ข) นำเข้าราคา</button>
+      <button class="btn btn-blue" onclick="const y=priceHubYM(); if(y) showEntryRepriceModal(y)">🔁 (ค) ปรับราคาที่ตรึงในรายการนับ</button>
+      <button class="btn btn-secondary" onclick="closeModal()">ปิด</button>
+    </div>`);
+}
+function priceHubYM(){
+  const el = document.getElementById('pi_ym'), v = el && el.value;
+  if(!/^\d{4}-\d{2}$/.test(v || '')){ toast('เลือกเดือนก่อน', 'err'); return null; }
+  PRICE_IMPORT_YM = v;
+  return v;
+}
+
+/* ── (1) item master ── */
+function computePriceImportPreview(importData, ym){
   const rows = importData.rows, sum = importData.summary;
   const countErrors = [];
   const assertCount = (name, got, want) => { if(got !== want) countErrors.push(`${name}: ${got} ≠ ${want}`); };
@@ -3462,8 +3499,9 @@ function computeSeptemberPriceImportPreview(importData){
   assertCount('conflict_unresolved', rows.filter(r=>r.status==='CONFLICT_UNRESOLVED').length, sum.conflict_unresolved);
   assertCount('store_cost_only', importData.storeCostOnly.length, sum.store_cost_only);
   assertCount('duplicate_codes', rows.length - new Set(rows.map(r=>r.code)).size, 0);
-  if(importData.effectiveFrom !== SEP_IMPORT_YM) countErrors.push(`effectiveFrom ${importData.effectiveFrom} ≠ ${SEP_IMPORT_YM}`);
+  if(importData.effectiveFrom !== ym) countErrors.push(`effectiveFrom ${importData.effectiveFrom} ≠ เดือนที่เลือก ${ym}`);
   if(importData.basis !== 'EX_VAT') countErrors.push(`basis ${importData.basis} ≠ EX_VAT`);
+  if(importData.priceSource !== `code-206-${ym}`) countErrors.push(`priceSource ${importData.priceSource} ≠ code-206-${ym}`);
 
   const itemMap = Object.fromEntries(ITEMS_DATA.map(it => [it.code, it]));
   const toWrite = [], skippedNotInApp = [], skippedConflict = [], validationErrors = [];
@@ -3493,7 +3531,7 @@ function computeSeptemberPriceImportPreview(importData){
       code:r.code, name:r.name, kind, price:r.exVat, priceUom, source:r.source,
       from:{ price:cur, basis:curBasis, eff:item.priceEffectiveFrom || null },
       deltaPct: prevEx ? r.exVat / prevEx - 1 : null,
-      manualSepOverwrite: kind === 'CHANGED' && item.priceEffectiveFrom === SEP_IMPORT_YM && !item.priceSource
+      manualOverwrite: kind === 'CHANGED' && item.priceEffectiveFrom === ym && !item.priceSource
     });
   });
 
@@ -3502,49 +3540,44 @@ function computeSeptemberPriceImportPreview(importData){
   const storeCostLive = importData.storeCostOnly.filter(r => itemMap[r.code]).map(r => ({ ...r, cur: itemMap[r.code] }));
   const overruled = importData.conflicts.filter(c => c.kind === 'FBK_WINS' && itemMap[c.code]);
   return {
-    canWrite: countErrors.length === 0 && validationErrors.length === 0,
+    ym, canWrite: countErrors.length === 0 && validationErrors.length === 0,
     countErrors, validationErrors, toWrite, skippedNotInApp, skippedConflict, storeCostLive, overruled,
     beyond20: toWrite.filter(w => w.deltaPct != null && Math.abs(w.deltaPct) >= 0.2),
-    manualSep: toWrite.filter(w => w.manualSepOverwrite),
+    manualOverwrites: toWrite.filter(w => w.manualOverwrite),
     untouchedCount: untouched.length,
-    untouchedInVat: untouched.filter(it => it.priceBasis === 'IN_VAT').length,
     currentInVat: ITEMS_DATA.filter(it => it.priceBasis === 'IN_VAT').length,
     projectedInVat: untouched.filter(it => it.priceBasis === 'IN_VAT').length,
     vatInconsistent: importData.vatInconsistent
   };
 }
 
-async function showSeptemberPriceImportModal(){
+async function showPriceImportModal(ym){
   let importData, preview;
   try {
-    importData = await loadSeptemberPriceImportData();
-    preview = computeSeptemberPriceImportPreview(importData);
+    importData = await loadPriceImportData(ym);
+    preview = computePriceImportPreview(importData, ym);
   } catch(e){
-    showModal(`<h3>📥 นำเข้าราคา ก.ย. 69</h3><p style="color:var(--red);margin-top:10px">โหลด/ตรวจสอบไฟล์ไม่สำเร็จ: ${esc(e.message)}</p><div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+    showModal(`<h3>📥 นำเข้าราคา ${esc(ymToFull(ym))}</h3><p style="color:var(--red);margin-top:10px">โหลด/ตรวจสอบไฟล์ไม่สำเร็จ: ${esc(e.message)}</p><div class="modal-actions"><button class="btn btn-secondary" onclick="showMonthlyPriceHub()">← กลับ</button></div>`);
     return;
   }
-  window.__sep_price_preview = preview;
+  window.__pi_price_preview = preview;
   const n = k => preview.toWrite.filter(w => w.kind === k).length;
-  const pct = d => d == null ? '—' : (d >= 0 ? '+' : '') + (d * 100).toFixed(1) + '%';
-  const tbl = (head, body, max) => `<div class="tbl-wrap" style="max-height:${max||170}px;margin-top:4px"><table class="dtbl"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
-  const sec = (color, title, inner) => `<div style="margin-top:12px"><div style="font-size:12.5px;font-weight:700;color:${color}">${title}</div>${inner}</div>`;
-  const card = (l, v) => `<div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">${l}</div><div style="font-size:18px;font-weight:800">${v}</div></div>`;
   const priceCell = f => f.price == null ? '—' : `${fNum(f.price,2)} <span style="font-size:10px;color:var(--txt4)">${esc(vatBasisLabel(f.basis) || '?')}</span>`;
+  const m = esc(ymToFull(ym));
 
   showModal(`
-    <h3>📥 นำเข้าราคาเดือน ก.ย. 69 — Code 206 Bakery, EX VAT</h3>
+    <h3>📥 นำเข้าราคาเดือน ${m} — Code 206 Bakery, EX VAT</h3>
     <p style="color:var(--txt2);margin-top:8px;font-size:12.5px">
-      ขั้นที่ 1 จาก 2: เขียนเฉพาะราคาใน <code>masterData/items</code> — <b>ไม่แตะจำนวนที่นับ</b> ·
-      FBK sha256 ${esc(importData.sourceFiles.FBK.sha256.slice(0,16))}… · effectiveFrom ${esc(importData.effectiveFrom)}
+      เขียนเฉพาะราคาใน <code>masterData/items</code> — <b>ไม่แตะจำนวนที่นับ</b> ·
+      ${Object.entries(importData.sourceFiles).map(([k,v]) => esc(k) + ' ' + esc(v.sha256.slice(0,10)) + '…').join(' · ')} · effectiveFrom ${esc(importData.effectiveFrom)}
     </p>
-    ${!preview.canWrite ? `<div style="margin-top:10px;padding:10px 13px;background:var(--red-bg);border-radius:var(--r8);border:1px solid rgba(224,50,68,.3);color:var(--red);font-weight:700;font-size:13px">
-      ❌ ตรวจสอบไม่ผ่าน — จะไม่เขียนอะไรเลยจนกว่าจะแก้ไข (all-or-nothing)
-      ${preview.countErrors.length ? `<div style="font-weight:400;margin-top:4px;font-size:12px">${preview.countErrors.map(esc).join('<br>')}</div>` : ''}
-    </div>` : `<div style="margin-top:10px;padding:10px 13px;background:var(--green-bg);border-radius:var(--r8);border:1px solid rgba(13,159,110,.25);color:var(--green);font-weight:700;font-size:13px">✅ ตรวจสอบผ่านทั้งหมด — พร้อมเขียน</div>`}
+    ${!preview.canWrite ? piBox('var(--red-bg)', 'var(--red)', `❌ ตรวจสอบไม่ผ่าน — จะไม่เขียนอะไรเลยจนกว่าจะแก้ไข (all-or-nothing)
+      ${preview.countErrors.length ? `<div style="font-weight:400;margin-top:4px;font-size:12px">${preview.countErrors.map(esc).join('<br>')}</div>` : ''}`)
+      : piBox('var(--green-bg)', 'var(--green)', '✅ ตรวจสอบผ่านทั้งหมด — พร้อมเขียน')}
 
     <div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px">
-      ${card('ราคาเปลี่ยน (CHANGED)', n('CHANGED'))}${card('เปลี่ยนฐาน IN→EX (ราคาเท่าเดิม)', n('BASIS_ONLY'))}
-      ${card('ราคาเดิมตรงอยู่แล้ว', n('UNCHANGED'))}${card('ตั้งราคาใหม่ (เดิมไม่มี)', n('NEW'))}
+      ${piCard('ราคาเปลี่ยน (CHANGED)', n('CHANGED'))}${piCard('เปลี่ยนฐาน IN→EX (ราคาเท่าเดิม)', n('BASIS_ONLY'))}
+      ${piCard('ราคาเดิมตรงอยู่แล้ว', n('UNCHANGED'))}${piCard('ตั้งราคาใหม่ (เดิมไม่มี)', n('NEW'))}
     </div>
     <div style="margin-top:6px;font-size:12px;color:var(--txt3)">
       รวมเขียน <b>${preview.toWrite.length}</b> รายการ · ไม่แตะ (ไม่อยู่ในใบราคา) ${preview.untouchedCount} รายการ
@@ -3553,59 +3586,60 @@ async function showSeptemberPriceImportModal(){
       · "ใช้ราคาทุนหน้าร้าน" ไม่ใช่ราคา → ไม่เขียน ${preview.storeCostLive.length} รายการที่มีในแอป
     </div>
 
-    ${preview.manualSep.length ? sec('var(--warn)', `✏️ ${preview.manualSep.length} รายการที่ถูกแก้ราคาเองเดือน ก.ย. (ไม่ใช่จากใบราคา) — จะถูกแทนที่ด้วยราคาในไฟล์ตามที่ตกลง`,
-      tbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">ราคาเดิม</th><th class="tr">ราคาในไฟล์</th><th class="tr">เปลี่ยน</th>',
-        preview.manualSep.map(w=>`<tr><td class="code-cell">${esc(w.code)}</td><td>${esc(w.name)}</td><td class="tr num">${priceCell(w.from)}</td><td class="tr num">${fNum(w.price,2)}</td><td class="tr num">${pct(w.deltaPct)}</td></tr>`).join(''))) : ''}
+    ${preview.manualOverwrites.length ? piSec('var(--warn)', `✏️ ${preview.manualOverwrites.length} รายการที่ถูกแก้ราคาเองในเดือนนี้ (ไม่ใช่จากใบราคา) — จะถูกแทนที่ด้วยราคาในไฟล์`,
+      piTbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">ราคาเดิม</th><th class="tr">ราคาในไฟล์</th><th class="tr">เปลี่ยน</th>',
+        preview.manualOverwrites.map(w=>`<tr><td class="code-cell">${esc(w.code)}</td><td>${esc(w.name)}</td><td class="tr num">${priceCell(w.from)}</td><td class="tr num">${fNum(w.price,2)}</td><td class="tr num">${piPct(w.deltaPct)}</td></tr>`).join(''))) : ''}
 
-    ${sec('var(--warn)', `📊 ${preview.beyond20.length} รายการที่ราคาขยับเกิน ±20% (เทียบฐาน EX VAT)`,
-      tbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">เดิม</th><th class="tr">ใหม่ (EX)</th><th class="tr">เปลี่ยน</th>',
-        preview.beyond20.map(w=>`<tr><td class="code-cell">${esc(w.code)}</td><td>${esc(w.name)}</td><td class="tr num">${priceCell(w.from)}</td><td class="tr num">${fNum(w.price,2)}</td><td class="tr num" style="color:var(--warn)">${pct(w.deltaPct)}</td></tr>`).join(''), 190))}
+    ${piSec('var(--warn)', `📊 ${preview.beyond20.length} รายการที่ราคาขยับเกิน ±20% (เทียบฐาน EX VAT)`,
+      piTbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">เดิม</th><th class="tr">ใหม่ (EX)</th><th class="tr">เปลี่ยน</th>',
+        preview.beyond20.map(w=>`<tr><td class="code-cell">${esc(w.code)}</td><td>${esc(w.name)}</td><td class="tr num">${priceCell(w.from)}</td><td class="tr num">${fNum(w.price,2)}</td><td class="tr num" style="color:var(--warn)">${piPct(w.deltaPct)}</td></tr>`).join(''), 190))}
 
-    ${preview.overruled.length ? sec('var(--txt2)', `🏪 ${preview.overruled.length} รหัสที่ไฟล์เฉพาะสาขาให้ราคาต่างจากไฟล์หลัก FBK — ใช้ราคา FBK (ระบบมีราคาเดียวต่อสินค้า)`,
-      tbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">FBK (ใช้)</th><th class="tr">ไฟล์สาขา (ไม่ใช้)</th>',
+    ${preview.overruled.length ? piSec('var(--txt2)', `🏪 ${preview.overruled.length} รหัสที่ไฟล์เฉพาะสาขาให้ราคาต่างจากไฟล์หลัก FBK — ใช้ราคา FBK (ระบบมีราคาเดียวต่อสินค้า)`,
+      piTbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">FBK (ใช้)</th><th class="tr">ไฟล์สาขา (ไม่ใช้)</th>',
         preview.overruled.map(c=>`<tr><td class="code-cell">${esc(c.code)}</td><td>${esc(c.name)}</td><td class="tr num">${fNum(Object.values(c.used)[0],2)}</td><td class="tr num">${Object.entries(c.overruled).map(([k,v])=>k+': '+fNum(v,2)).join(', ')}</td></tr>`).join(''), 150)) : ''}
 
-    ${preview.vatInconsistent.length ? sec('var(--txt2)', 'ℹ️ คอลัมน์ IN VAT ในไฟล์ไม่เท่ากับ EX × 1.07 (ใช้คอลัมน์ EX VAT)',
-      tbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">EX</th><th class="tr">IN</th>', preview.vatInconsistent.map(v=>`<tr><td class="code-cell">${esc(v.code)}</td><td>${esc(v.name)}</td><td class="tr num">${fNum(v.exVat,2)}</td><td class="tr num">${fNum(v.inVat,2)}</td></tr>`).join(''), 90)) : ''}
+    ${preview.vatInconsistent.length ? piSec('var(--txt2)', 'ℹ️ คอลัมน์ IN VAT ในไฟล์ไม่เท่ากับ EX × 1.07 (ใช้คอลัมน์ EX VAT)',
+      piTbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">EX</th><th class="tr">IN</th>', preview.vatInconsistent.map(v=>`<tr><td class="code-cell">${esc(v.code)}</td><td>${esc(v.name)}</td><td class="tr num">${fNum(v.exVat,2)}</td><td class="tr num">${fNum(v.inVat,2)}</td></tr>`).join(''), 90)) : ''}
 
-    ${preview.storeCostLive.length ? sec('var(--txt2)', `ℹ️ ${preview.storeCostLive.length} รายการที่ใบราคาระบุ "ใช้ราคาทุนหน้าร้าน" — ไม่มีตัวเลขให้นำเข้า จึงคงราคาเดิมไว้ทั้งหมด`,
-      tbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">ราคาปัจจุบัน</th>', preview.storeCostLive.map(r=>`<tr><td class="code-cell">${esc(r.code)}</td><td>${esc(r.name)}</td><td class="tr num">${r.cur.priceStatus==='NO_CONFIRMED_PRICE' ? 'ไม่มีราคายืนยัน' : priceCell({price:r.cur.price, basis:r.cur.priceBasis})}</td></tr>`).join(''), 130)) : ''}
+    ${preview.storeCostLive.length ? piSec('var(--txt2)', `ℹ️ ${preview.storeCostLive.length} รายการที่ใบราคาระบุ "ใช้ราคาทุนหน้าร้าน" — ไม่มีตัวเลขให้นำเข้า จึงคงราคาเดิมไว้ทั้งหมด`,
+      piTbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">ราคาปัจจุบัน</th>', preview.storeCostLive.map(r=>`<tr><td class="code-cell">${esc(r.code)}</td><td>${esc(r.name)}</td><td class="tr num">${r.cur.priceStatus==='NO_CONFIRMED_PRICE' ? 'ไม่มีราคายืนยัน' : priceCell({price:r.cur.price, basis:r.cur.priceBasis})}</td></tr>`).join(''), 130)) : ''}
 
-    ${preview.validationErrors.length ? sec('var(--red)', `❌ ${preview.validationErrors.length} รายการตรวจสอบไม่ผ่าน`,
-      tbl('<th>รหัส</th><th>ชื่อ</th><th>ปัญหา</th>', preview.validationErrors.map(e=>`<tr><td class="code-cell">${esc(e.code)}</td><td>${esc(e.name)}</td><td style="color:var(--red)">${esc(e.issue)}</td></tr>`).join(''))) : ''}
+    ${preview.validationErrors.length ? piSec('var(--red)', `❌ ${preview.validationErrors.length} รายการตรวจสอบไม่ผ่าน`,
+      piTbl('<th>รหัส</th><th>ชื่อ</th><th>ปัญหา</th>', preview.validationErrors.map(e=>`<tr><td class="code-cell">${esc(e.code)}</td><td>${esc(e.name)}</td><td style="color:var(--red)">${esc(e.issue)}</td></tr>`).join(''))) : ''}
 
     <div style="margin-top:12px;padding:10px 13px;background:var(--surface2);border-radius:var(--r8);font-size:12.5px">
       ฐาน IN_VAT ตอนนี้: <b>${preview.currentInVat}</b> → หลังนำเข้า: <b>${preview.projectedInVat}</b> รายการ
-      (เหลือเพราะไม่มีราคา EX VAT ในใบราคา ก.ย. — ไม่แตะ)
+      (เหลือเพราะไม่มีราคา EX VAT ในใบราคานี้ — ไม่แตะ)
     </div>
-    <div id="sepMonthEffect" style="margin-top:10px;padding:10px 13px;background:var(--surface2);border-radius:var(--r8);font-size:12.5px;color:var(--txt3)">⏳ กำลังคำนวณผลต่อยอดรวมแต่ละเดือน…</div>
+    <div id="piMonthEffect" style="margin-top:10px;padding:10px 13px;background:var(--surface2);border-radius:var(--r8);font-size:12.5px;color:var(--txt3)">⏳ กำลังคำนวณผลต่อยอดรวมแต่ละเดือน…</div>
 
     <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="showMonthlyPriceHub()">← กลับ</button>
       <button class="btn btn-secondary" onclick="closeModal()">ปิด (ยังไม่เขียน)</button>
-      ${preview.canWrite ? `<button class="btn btn-blue" onclick="doSeptemberPriceImport()">📥 ยืนยันนำเข้า (${preview.toWrite.length} รายการ)</button>` : ''}
+      ${preview.canWrite ? `<button class="btn btn-blue" onclick="doPriceImport()">📥 ยืนยันนำเข้า (${preview.toWrite.length} รายการ)</button>` : ''}
     </div>`);
 
   // Informational only (never blocks): which months' totals move. Months whose rows are all
   // stamped (T11) cannot move; un-stamped rows read the live master, so they do.
   try {
     const allE = await dbGet('entries') || {};
-    const itemsAfter = sepApplyToItems(ITEMS_DATA, preview.toWrite);
-    const yms = [...new Set(Object.values(allE).flatMap(s => Object.keys(s || {})))].sort();
+    const itemsAfter = priceImportApplyToItems(ITEMS_DATA, preview.toWrite, importData);
     const lines = [];
-    yms.forEach(ym => {
-      const b = sepTotalsFor(allE, ym, ITEMS_DATA), a = sepTotalsFor(allE, ym, itemsAfter);
-      if(Math.abs(a.total - b.total) > 0.005) lines.push(`<tr><td>${esc(ymToFull(ym))}</td><td class="tr num">${b.livePriceRows}</td><td class="tr num">฿${fNum(b.total,2)}</td><td class="tr num">฿${fNum(a.total,2)}</td><td class="tr num">${pct(a.total/b.total-1)}</td></tr>`);
+    priceImportMonths(allE).forEach(y => {
+      const b = monthTotalsFor(allE, y, ITEMS_DATA), a = monthTotalsFor(allE, y, itemsAfter);
+      if(Math.abs(a.total - b.total) > 0.005) lines.push(`<tr><td>${esc(ymToFull(y))}</td><td class="tr num">${fNum(b.livePriceRows,0)}</td><td class="tr num">฿${fNum(b.total,2)}</td><td class="tr num">฿${fNum(a.total,2)}</td><td class="tr num">${piPct(a.total/b.total-1)}</td></tr>`);
     });
-    const el = document.getElementById('sepMonthEffect');
-    if(el) el.innerHTML = `<b>ผลต่อยอดรวมประมาณการ</b> (เฉพาะเดือนที่มีแถวยังไม่ตรึงราคา — แถวที่ตรึงแล้วไม่เปลี่ยนในขั้นนี้; ก.ย. จะถูกปรับต่อในขั้นที่ 2)` +
+    const el = document.getElementById('piMonthEffect');
+    if(el) el.innerHTML = `<b>ผลต่อยอดรวมประมาณการ</b> — เฉพาะเดือนที่มีแถวยังไม่ตรึงราคา (แถวที่ตรึงแล้วไม่เปลี่ยนในขั้นนี้ · ตรึงเดือนเก่าก่อนได้ที่ปุ่ม 🧊)` +
       (lines.length ? `<table class="dtbl" style="margin-top:6px"><thead><tr><th>เดือน</th><th class="tr">แถวยังไม่ตรึง</th><th class="tr">ก่อน</th><th class="tr">หลัง</th><th class="tr">เปลี่ยน</th></tr></thead><tbody>${lines.join('')}</tbody></table>` : '<div style="margin-top:4px">ไม่มีเดือนใดเปลี่ยน</div>');
-  } catch(e){ const el = document.getElementById('sepMonthEffect'); if(el) el.textContent = 'คำนวณผลต่อยอดรวมไม่สำเร็จ: ' + e.message; }
+  } catch(e){ const el = document.getElementById('piMonthEffect'); if(el) el.textContent = 'คำนวณผลต่อยอดรวมไม่สำเร็จ: ' + e.message; }
 }
 
-async function doSeptemberPriceImport(){
-  const preview = window.__sep_price_preview;
+async function doPriceImport(){
+  const preview = window.__pi_price_preview;
   if(!preview || !preview.canWrite){ toast('ไม่มี preview ที่ตรวจสอบผ่าน — เปิดหน้าต่างนำเข้าใหม่', 'err'); return; }
-  const importData = await loadSeptemberPriceImportData();
+  const ym = preview.ym;
+  const importData = await loadPriceImportData(ym);
   // Stale-snapshot guard: saveMasterItems() overwrites the whole array from this tab's
   // in-memory ITEMS_DATA. If production moved since this tab loaded (another admin edit),
   // or holds an item this tab filtered out, refuse rather than silently revert/prune it.
@@ -3619,29 +3653,55 @@ async function doSeptemberPriceImport(){
     return;
   }
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
-  downloadJsonFile(`bakery_masterData_items_BEFORE_sep_import_${ts}.json`, freshArr);   // restore point
-  const newItems = sepApplyToItems(ITEMS_DATA, preview.toWrite);
+  downloadJsonFile(`bakery_masterData_items_BEFORE_price_import_${ym}_${ts}.json`, freshArr);   // restore point
+  const newItems = priceImportApplyToItems(ITEMS_DATA, preview.toWrite, importData);
   closeModal();
   const n = k => preview.toWrite.filter(w => w.kind === k).length;
-  await saveMasterItems(newItems, `นำเข้าราคาเดือน ก.ย. 69 แล้ว ${preview.toWrite.length} รายการ ✅ — ต่อด้วยขั้นที่ 2 (ปรับราคาที่ตรึงในรายการนับ)`);
+  await saveMasterItems(newItems, `นำเข้าราคาเดือน ${ymToFull(ym)} แล้ว ${preview.toWrite.length} รายการ ✅`);
   await dbPush('logs', {
-    no:'admin', name:(SES && SES.name) || 'admin', ts:Date.now(), action:'septemberPriceImport', source:'excel-import',
+    no:'admin', name:(SES && SES.name) || 'admin', ts:Date.now(), action:'monthlyPriceImport', source:'excel-import', ym,
     written: preview.toWrite.length, changed: n('CHANGED'), basisOnly: n('BASIS_ONLY'), unchanged: n('UNCHANGED'), new: n('NEW'),
     skippedNotInApp: preview.skippedNotInApp.length, untouched: preview.untouchedCount,
-    sourceSha256: { FBK: importData.sourceFiles.FBK.sha256, S2: importData.sourceFiles.S2.sha256, S22: importData.sourceFiles.S22.sha256 }
+    sourceSha256: Object.fromEntries(Object.entries(importData.sourceFiles).map(([k, v]) => [k, v.sha256]))
   });
-  window.__sep_price_preview = null;
+  window.__pi_price_preview = null;
 }
 
-/* ── (B) re-price already-saved September entries: price leaves only ── */
-function computeSeptemberEntryReprice(importData, allE){
-  const itemPlan = computeSeptemberPriceImportPreview(importData);
-  const res = { canWrite: itemPlan.canWrite, itemPlan, writes: [], already: [], unstamped: [], uomMismatch: [], malformed: [], legacy: [], notInImport: [], stores: 0, rows: 0 };
+/* ── shared by (2) and (3): compare a month before/after a leaf-only write ──
+   Every field outside `leaves` must be identical; for rows in writeMap the leaves must equal
+   the planned values, and for every other row the leaves must be unchanged. */
+function verifyPriceLeaves(ym, beforeMonths, afterAllE, writeMap, leaves){
+  const problems = []; let rowsChecked = 0, leavesOk = 0;
+  const leafSet = new Set(leaves);
+  const strip = o => JSON.stringify(Object.keys(o).filter(k => !leafSet.has(k)).sort().map(k => [k, o[k]]));
+  const same = (x, y) => (x ?? null) === (y ?? null) || (typeof x === 'number' && typeof y === 'number' && Math.abs(x - y) < 1e-9);
+  Object.keys(beforeMonths).forEach(sNo => {
+    const b = beforeMonths[sNo] || {}, a = ((afterAllE[sNo] || {})[ym]) || {};
+    if(Object.keys(b).sort().join(',') !== Object.keys(a).sort().join(',')) problems.push(`${sNo}: รายการแถวไม่ตรงกัน (ก่อน ${Object.keys(b).length} / หลัง ${Object.keys(a).length})`);
+    Object.keys(b).forEach(code => {
+      const rb = b[code], ra = a[code];
+      if(ra === undefined) return;
+      rowsChecked++;
+      if(rb === null || typeof rb !== 'object' || typeof ra !== 'object'){ if(JSON.stringify(rb) !== JSON.stringify(ra)) problems.push(`${sNo}/${code}: ค่าเปลี่ยน`); return; }
+      if(strip(rb) !== strip(ra)) problems.push(`${sNo}/${code}: ฟิลด์ที่ไม่ใช่ราคาเปลี่ยนไป`);
+      const w = writeMap[sNo + '/' + code];
+      if(w){
+        const bad = leaves.filter(k => !same(ra[k], w.expect[k]));
+        if(bad.length) problems.push(`${sNo}/${code}: ราคาไม่ตรงแผน (${bad.map(k => k + '=' + ra[k]).join(', ')})`); else leavesOk++;
+      } else if(leaves.some(k => !same(rb[k], ra[k]))) problems.push(`${sNo}/${code}: แถวที่ไม่อยู่ในแผนถูกเปลี่ยนราคา`);
+    });
+  });
+  return { problems, rowsChecked, leavesOk };
+}
+
+/* ── (2) re-price already-saved entries of the chosen month: price leaves only ── */
+function computeEntryReprice(importData, allE, ym){
+  const itemPlan = computePriceImportPreview(importData, ym);
+  const res = { ym, canWrite: itemPlan.canWrite, itemPlan, writes: [], already: [], unstamped: [], uomMismatch: [], malformed: [], legacy: [], notInImport: [], stores: 0, rows: 0 };
   if(!itemPlan.canWrite) return res;
   const target = Object.fromEntries(itemPlan.toWrite.map(w => [w.code, w]));
-  const priceKeys = new Set(['price_at_count', 'priceBasis_at_count']);
   Object.keys(allE).forEach(sNo => {
-    const mData = (allE[sNo] || {})[SEP_IMPORT_YM];
+    const mData = (allE[sNo] || {})[ym];
     if(!mData || typeof mData !== 'object') return;
     res.stores++;
     Object.keys(mData).forEach(code => {
@@ -3651,24 +3711,24 @@ function computeSeptemberEntryReprice(importData, allE){
       if(raw === null || typeof raw !== 'object'){ res.legacy.push({ sNo, code }); return; }   // bare legacy value: never stamped
       if(raw.qty == null || raw.qty === ''){ res.malformed.push({ sNo, code }); return; }     // would be created by a partial write - never touch
       const e = normalizeEntry(raw);
-      if(!hasPriceSnapshot(e)){ res.unstamped.push({ sNo, code }); return; }                  // floats on the item master, which step A re-prices
+      if(!hasPriceSnapshot(e)){ res.unstamped.push({ sNo, code }); return; }                  // floats on the item master, which step (1) re-prices
       if(e.priceUom_at_count !== t.priceUom){ res.uomMismatch.push({ sNo, code, stamped: e.priceUom_at_count, item: t.priceUom }); return; }
       if(Math.abs(e.price_at_count - t.price) < 0.005 && e.priceBasis_at_count === 'EX_VAT'){ res.already.push({ sNo, code }); return; }
       res.writes.push({ sNo, code, fromPrice: e.price_at_count, fromBasis: e.priceBasis_at_count, toPrice: t.price });
     });
   });
   // Totals before → after: current entries + current item master vs. re-stamped entries + new item master.
-  const itemsAfter = sepApplyToItems(ITEMS_DATA, itemPlan.toWrite);
+  const itemsAfter = priceImportApplyToItems(ITEMS_DATA, itemPlan.toWrite, importData);
   const allEAfter = { ...allE };
   const byStore = {};
   res.writes.forEach(w => { (byStore[w.sNo] = byStore[w.sNo] || []).push(w); });
   Object.keys(byStore).forEach(sNo => {
-    const month = { ...allE[sNo][SEP_IMPORT_YM] };
+    const month = { ...allE[sNo][ym] };
     byStore[sNo].forEach(w => { month[w.code] = { ...month[w.code], price_at_count: w.toPrice, priceBasis_at_count: 'EX_VAT' }; });
-    allEAfter[sNo] = { ...allE[sNo], [SEP_IMPORT_YM]: month };
+    allEAfter[sNo] = { ...allE[sNo], [ym]: month };
   });
-  res.before = sepTotalsFor(allE, SEP_IMPORT_YM, ITEMS_DATA);
-  res.after = sepTotalsFor(allEAfter, SEP_IMPORT_YM, itemsAfter);
+  res.before = monthTotalsFor(allE, ym, ITEMS_DATA);
+  res.after = monthTotalsFor(allEAfter, ym, itemsAfter);
   res.writeStores = Object.keys(byStore).length;
   res.writeCodes = new Set(res.writes.map(w => w.code)).size;
   res.fromBasis = { EX_VAT: 0, IN_VAT: 0, none: 0 };
@@ -3678,156 +3738,292 @@ function computeSeptemberEntryReprice(importData, allE){
   return res;
 }
 
-async function showSeptemberEntryRepriceModal(){
-  let importData, plan;
-  showModal(`<h3>🔁 ปรับราคาที่ตรึงในรายการนับ ก.ย. 69</h3><p style="margin-top:10px;color:var(--txt3)">⏳ กำลังอ่านรายการนับทุกสาขา…</p>`);
+async function showEntryRepriceModal(ym){
+  const m = esc(ymToFull(ym));
+  let importData, plan, mc;
+  showModal(`<h3>🔁 ปรับราคาที่ตรึงในรายการนับ ${m}</h3><p style="margin-top:10px;color:var(--txt3)">⏳ กำลังอ่านรายการนับทุกสาขา…</p>`);
   try {
-    importData = await loadSeptemberPriceImportData();
+    importData = await loadPriceImportData(ym);
     const allE = await dbGet('entries') || {};
-    plan = computeSeptemberEntryReprice(importData, allE);
+    mc = await getMonthControl();
+    plan = computeEntryReprice(importData, allE, ym);
   } catch(e){
-    showModal(`<h3>🔁 ปรับราคาที่ตรึงในรายการนับ ก.ย. 69</h3><p style="color:var(--red);margin-top:10px">ไม่สำเร็จ: ${esc(e.message)}</p><div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+    showModal(`<h3>🔁 ปรับราคาที่ตรึงในรายการนับ ${m}</h3><p style="color:var(--red);margin-top:10px">ไม่สำเร็จ: ${esc(e.message)}</p><div class="modal-actions"><button class="btn btn-secondary" onclick="showMonthlyPriceHub()">← กลับ</button></div>`);
     return;
   }
-  window.__sep_entry_plan = plan;
+  window.__pi_entry_plan = plan;
   const pct = (a, b) => b ? ((a / b - 1) * 100 >= 0 ? '+' : '') + ((a / b - 1) * 100).toFixed(2) + '%' : '—';
-  const card = (l, v) => `<div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">${l}</div><div style="font-size:18px;font-weight:800">${v}</div></div>`;
   const bd = b => `${b.green} ปกติ / ${b.amber} ต่ำกว่า / ${b.red} สูงกว่า / ${b.none} ไม่มี band`;
   if(!plan.canWrite){
-    showModal(`<h3>🔁 ปรับราคาที่ตรึงในรายการนับ ก.ย. 69</h3>
-      <div style="margin-top:10px;padding:10px 13px;background:var(--red-bg);border-radius:var(--r8);color:var(--red);font-weight:700">❌ ตรวจสอบราคานำเข้าไม่ผ่าน — ดูรายละเอียดที่หน้าต่าง "นำเข้าราคา ก.ย. 69" ก่อน ไม่ได้เขียนอะไร</div>
-      <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+    showModal(`<h3>🔁 ปรับราคาที่ตรึงในรายการนับ ${m}</h3>
+      ${piBox('var(--red-bg)', 'var(--red)', '❌ ตรวจสอบราคานำเข้าไม่ผ่าน — ดูรายละเอียดที่หน้าต่าง "นำเข้าราคา" ก่อน ไม่ได้เขียนอะไร')}
+      <div class="modal-actions"><button class="btn btn-secondary" onclick="showMonthlyPriceHub()">← กลับ</button></div>`);
     return;
   }
+  const open = mc[ym] && mc[ym].active === true;
   showModal(`
-    <h3>🔁 ปรับราคาที่ตรึงในรายการนับ ${esc(ymToFull(SEP_IMPORT_YM))}</h3>
+    <h3>🔁 ปรับราคาที่ตรึงในรายการนับ ${m}</h3>
     <p style="color:var(--txt2);margin-top:8px;font-size:12.5px">
-      ขั้นที่ 2 จาก 2: ปรับ <b>เฉพาะ</b> <code>price_at_count</code> และ <code>priceBasis_at_count</code> ของแถวที่สาขาบันทึกไว้แล้วในเดือน ก.ย. 69 เป็นราคา EX VAT ตามใบราคา —
+      ปรับ <b>เฉพาะ</b> <code>price_at_count</code> และ <code>priceBasis_at_count</code> ของแถวที่สาขาบันทึกไว้แล้วในเดือน ${m} เป็นราคา EX VAT ตามใบราคา —
       <b>ไม่แตะ</b> จำนวนนับ (qty), หน่วย, ขนาดบรรจุ, เศษ, เวลานับ หรือการยืนยัน และไม่แตะเดือนอื่น
     </p>
+    ${open ? piBox('var(--amber-bg,var(--surface2))', 'var(--warn)', '⚠️ เดือนนี้ยังเปิดให้นับอยู่ — สาขาที่บันทึกหลังจากนี้จะตรึงราคาจากรายการสินค้า ณ ตอนนั้น (นำเข้าราคาขั้นก่อนหน้าแล้วจึงไม่ต้องห่วง)') : ''}
     <div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px">
-      ${card('สาขาที่มีข้อมูล ก.ย.', plan.stores)}${card('แถวทั้งหมดใน ก.ย.', fNum(plan.rows,0))}
-      ${card('แถวที่จะปรับราคา', fNum(plan.writes.length,0))}${card('จาก ' + plan.writeStores + ' สาขา', plan.writeCodes + ' รหัส')}
+      ${piCard('สาขาที่มีข้อมูลเดือนนี้', plan.stores)}${piCard('แถวทั้งหมด', fNum(plan.rows,0))}
+      ${piCard('แถวที่จะปรับราคา', fNum(plan.writes.length,0))}${piCard('จาก ' + plan.writeStores + ' สาขา', plan.writeCodes + ' รหัส')}
     </div>
     <div style="margin-top:8px;font-size:12px;color:var(--txt3);line-height:1.7">
       ราคาเดิมของแถวที่จะปรับ: รวม VAT ${fNum(plan.fromBasis.IN_VAT,0)} · ไม่รวม VAT ${fNum(plan.fromBasis.EX_VAT,0)} · ไม่ระบุฐาน ${fNum(plan.fromBasis.none,0)}<br>
-      ข้าม: ราคาตรงอยู่แล้ว ${fNum(plan.already.length,0)} · ยังไม่ตรึงราคา (ขั้นที่ 1 ปรับให้อัตโนมัติ) ${fNum(plan.unstamped.length,0)} ·
+      ข้าม: ราคาตรงอยู่แล้ว ${fNum(plan.already.length,0)} · ยังไม่ตรึงราคา (ขั้นนำเข้าราคาปรับให้อัตโนมัติ) ${fNum(plan.unstamped.length,0)} ·
       ไม่อยู่ในใบราคา (ไม่แตะ) ${fNum(plan.notInImport.length,0)} (ตรึงรวม VAT ${fNum(plan.untouchedBasis.IN_VAT,0)}) ·
       ค่าเก่า/ผิดรูป ${plan.legacy.length + plan.malformed.length} · หน่วยราคาไม่ตรง ${plan.uomMismatch.length}
     </div>
     <div style="margin-top:12px;padding:10px 13px;background:var(--surface2);border-radius:var(--r8);font-size:12.5px;line-height:1.8">
-      <b>ยอดรวมประมาณการ ก.ย. 69</b> (สาขาที่ยังนับอยู่ ${plan.before.stores} สาขา, ${fNum(plan.before.countedRows,0)} แถว):<br>
+      <b>ยอดรวมประมาณการ ${m}</b> (สาขาที่ยังนับอยู่ ${plan.before.stores} สาขา, ${fNum(plan.before.countedRows,0)} แถว):<br>
       ก่อน ฿${fNum(plan.before.total,2)} → หลัง ฿${fNum(plan.after.total,2)} (${pct(plan.after.total, plan.before.total)})<br>
       แถวที่ยังไม่ตรึงราคา: ${fNum(plan.before.livePriceRows,0)} → ${fNum(plan.after.livePriceRows,0)} (ยังไม่ตรึง = ใช้ราคาปัจจุบันของรายการสินค้า)<br>
       band: ก่อน ${bd(plan.before.bands)}<br>band: หลัง ${bd(plan.after.bands)}
     </div>
     ${plan.uomMismatch.length ? `<div style="margin-top:10px;font-size:12px;color:var(--warn)">⚠️ ${plan.uomMismatch.length} แถวที่หน่วยราคาที่ตรึงไว้ไม่ตรงกับหน่วยซื้อ — ไม่แตะ: ${plan.uomMismatch.slice(0,12).map(u => esc(u.sNo + '/' + u.code)).join(', ')}${plan.uomMismatch.length>12?' …':''}</div>` : ''}
-    <div style="margin-top:12px;padding:10px 13px;background:var(--amber-bg,var(--surface2));border-radius:var(--r8);font-size:12px;line-height:1.7">
-      <b>ก่อนเขียน:</b> ระบบจะดาวน์โหลดไฟล์สำรองรายการนับ ก.ย. ทุกสาขา แล้วอ่านแต่ละสาขาซ้ำอีกครั้งก่อนเขียน (ข้ามแถวที่เปลี่ยนไประหว่างนี้) เขียนทีละสาขา (ทำซ้ำได้ — รันใหม่จะข้ามแถวที่ปรับแล้ว)
+    <div style="margin-top:12px;padding:10px 13px;background:var(--surface2);border-radius:var(--r8);font-size:12px;line-height:1.7">
+      <b>ก่อนเขียน:</b> ระบบจะดาวน์โหลดไฟล์สำรองรายการนับเดือนนี้ทุกสาขา แล้วอ่านแต่ละสาขาซ้ำอีกครั้งก่อนเขียน (ข้ามแถวที่เปลี่ยนไประหว่างนี้) เขียนทีละสาขา (ทำซ้ำได้ — รันใหม่จะข้ามแถวที่ปรับแล้ว)
       และตรวจหลังเขียนว่าทุกฟิลด์ที่ไม่ใช่ราคาเหมือนเดิม 100%. ควรรันตอนที่ไม่มีสาขาเปิดหน้านับอยู่ (หน้าที่เปิดค้างไว้ก่อนหน้านี้อาจบันทึกทับราคาเก่ากลับมา)
     </div>
     <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="showMonthlyPriceHub()">← กลับ</button>
       <button class="btn btn-secondary" onclick="closeModal()">ปิด (ยังไม่เขียน)</button>
-      ${plan.writes.length ? `<button class="btn btn-blue" onclick="doSeptemberEntryReprice()">🔁 ยืนยันปรับราคา ${fNum(plan.writes.length,0)} แถว</button>` : ''}
+      ${plan.writes.length ? `<button class="btn btn-blue" onclick="doEntryReprice()">🔁 ยืนยันปรับราคา ${fNum(plan.writes.length,0)} แถว</button>` : ''}
     </div>`);
 }
 
-/* Compare a month before/after: every field except the two price leaves must be identical;
-   the two price leaves must equal the plan for written rows and be unchanged otherwise. */
-function verifySeptemberReprice(beforeMonths, afterAllE, writeMap){
-  const problems = []; let rowsChecked = 0, priceFieldsOk = 0;
-  const strip = o => { const c = { ...o }; delete c.price_at_count; delete c.priceBasis_at_count; return JSON.stringify(Object.keys(c).sort().map(k => [k, c[k]])); };
-  Object.keys(beforeMonths).forEach(sNo => {
-    const b = beforeMonths[sNo] || {}, a = ((afterAllE[sNo] || {})[SEP_IMPORT_YM]) || {};
-    const keysB = Object.keys(b).sort().join(','), keysA = Object.keys(a).sort().join(',');
-    if(keysB !== keysA) problems.push(`${sNo}: รายการแถวไม่ตรงกัน (ก่อน ${Object.keys(b).length} / หลัง ${Object.keys(a).length})`);
-    Object.keys(b).forEach(code => {
-      const rb = b[code], ra = a[code];
-      if(ra === undefined) return;
-      rowsChecked++;
-      if(rb === null || typeof rb !== 'object' || typeof ra !== 'object'){ if(JSON.stringify(rb) !== JSON.stringify(ra)) problems.push(`${sNo}/${code}: ค่าเปลี่ยน`); return; }
-      if(strip(rb) !== strip(ra)) problems.push(`${sNo}/${code}: ฟิลด์ที่ไม่ใช่ราคาเปลี่ยนไป`);
-      const w = writeMap[sNo + '/' + code];
-      if(w){
-        if(Math.abs(ra.price_at_count - w.toPrice) > 1e-9 || ra.priceBasis_at_count !== 'EX_VAT') problems.push(`${sNo}/${code}: ราคาไม่ตรงแผน (${ra.price_at_count}/${ra.priceBasis_at_count})`); else priceFieldsOk++;
-      } else if(rb.price_at_count !== ra.price_at_count || rb.priceBasis_at_count !== ra.priceBasis_at_count) problems.push(`${sNo}/${code}: แถวที่ไม่อยู่ในแผนถูกเปลี่ยนราคา`);
-    });
-  });
-  return { problems, rowsChecked, priceFieldsOk };
-}
-
-async function doSeptemberEntryReprice(){
-  const plan = window.__sep_entry_plan;
-  if(!plan || !plan.canWrite || !plan.writes.length){ toast('ไม่มี preview ที่พร้อมเขียน — เปิดหน้าต่างใหม่', 'err'); return; }
-  const importData = await loadSeptemberPriceImportData();
-  const target = Object.fromEntries(plan.itemPlan.toWrite.map(w => [w.code, w]));
-  const progress = t => showModal(`<h3>🔁 ปรับราคาที่ตรึงในรายการนับ ก.ย. 69</h3><p style="margin-top:10px;font-size:13px">${t}</p>`);
-
-  // 1) restore point: every store's September month, exactly as it is right now
-  progress('⏳ กำลังสำรองข้อมูล ก.ย. ทุกสาขา…');
-  const allE0 = await dbGet('entries') || {};
-  const before = {};
-  Object.keys(allE0).forEach(sNo => { const m = (allE0[sNo] || {})[SEP_IMPORT_YM]; if(m) before[sNo] = m; });
-  const ts = new Date().toISOString().replace(/[:.]/g, '-');
-  downloadJsonFile(`bakery_entries_${SEP_IMPORT_YM}_BEFORE_reprice_${ts}.json`, { ym: SEP_IMPORT_YM, takenAt: Date.now(), stores: before });
-
-  // 2) per store: fresh read -> re-check each row -> multi-path write of the two price leaves only
+/* Per-store leaf-only write used by (2) and (3): fresh read of that store's month → keep only
+   rows that still pass `stillValid(raw, w)` → one multi-path update → next store. Stops at the
+   first failure; completed stores are final and a re-run resumes (both actions are idempotent). */
+async function priceLeafWriteByStore(ym, writes, stillValid, leavesFor, onProgress){
   const byStore = {};
-  plan.writes.forEach(w => { (byStore[w.sNo] = byStore[w.sNo] || []).push(w); });
+  writes.forEach(w => { (byStore[w.sNo] = byStore[w.sNo] || []).push(w); });
   const storeNos = Object.keys(byStore);
-  const done = [], skippedChanged = [], failed = [];
-  const written = {};
+  const done = [], skippedChanged = [], failed = [], written = {};
   for(let i = 0; i < storeNos.length; i++){
     const sNo = storeNos[i];
-    progress(`⏳ กำลังเขียน… สาขา ${esc(sNo)} (${i + 1}/${storeNos.length}) — ปรับแล้ว ${Object.keys(written).length} แถว`);
+    onProgress(sNo, i + 1, storeNos.length, Object.keys(written).length);
     try {
-      const month = await dbGet(`entries/${sNo}/${SEP_IMPORT_YM}`) || {};
+      const month = await dbGet(`entries/${sNo}/${ym}`) || {};
       const upd = {};
       byStore[sNo].forEach(w => {
         const raw = month[w.code];
-        const e = (raw && typeof raw === 'object' && raw.qty != null && raw.qty !== '') ? normalizeEntry(raw) : null;
-        // still present, still stamped exactly as previewed — otherwise someone saved in between: skip, never force
-        if(!e || !hasPriceSnapshot(e) || e.priceUom_at_count !== target[w.code].priceUom ||
-           Math.abs(e.price_at_count - w.fromPrice) > 1e-9 || (e.priceBasis_at_count || null) !== (w.fromBasis || null)){
-          skippedChanged.push(`${sNo}/${w.code}`); return;
-        }
-        const base = `entries/${sNo}/${SEP_IMPORT_YM}/${w.code}`;
-        upd[base + '/price_at_count'] = w.toPrice;
-        upd[base + '/priceBasis_at_count'] = 'EX_VAT';
+        const objRow = raw && typeof raw === 'object' && raw.qty != null && raw.qty !== '';
+        if(!objRow || !stillValid(raw, w)){ skippedChanged.push(`${sNo}/${w.code}`); return; }   // someone saved in between: skip, never force
+        const leaves = leavesFor(w);
+        Object.keys(leaves).forEach(k => { upd[`entries/${sNo}/${ym}/${w.code}/${k}`] = leaves[k]; });
         written[sNo + '/' + w.code] = w;
       });
       if(Object.keys(upd).length){ await db.ref().update(Object.fromEntries(Object.entries(upd).map(([k, v]) => [DB_ROOT + '/' + k, v]))); }
       done.push(sNo);
-    } catch(err){
-      failed.push(`${sNo}: ${err.message}`);
-      break;   // stop at the first failure; completed stores are final, a re-run resumes (idempotent)
-    }
+    } catch(err){ failed.push(`${sNo}: ${err.message}`); break; }
   }
+  return { storeNos, done, skippedChanged, failed, written };
+}
+
+function priceWriteResultModal(title, ok, lines, v, extraHtml){
+  showModal(`
+    <h3>${ok ? '✅' : '⚠️'} ${title} — ${ok ? 'เสร็จสมบูรณ์' : 'ต้องตรวจสอบ'}</h3>
+    <div style="margin-top:10px;font-size:13px;line-height:1.8">${lines}
+      ตรวจหลังเขียน: ตรวจ ${fNum(v.rowsChecked,0)} แถว · ราคาตรงแผน ${fNum(v.leavesOk,0)} ·
+      <b style="color:${v.problems.length ? 'var(--red)' : 'var(--green)'}">ปัญหา ${v.problems.length}</b>
+      ${v.problems.length === 0 ? '— ทุกฟิลด์ที่ไม่ใช่ราคา (qty, หน่วย, ขนาดบรรจุ, เศษ, เวลานับ, การยืนยัน) เหมือนก่อนเขียนทุกแถว' : ''}
+    </div>
+    ${extraHtml || ''}
+    ${v.problems.length ? `<div class="tbl-wrap" style="max-height:200px;margin-top:8px;font-size:12px;color:var(--red)">${v.problems.slice(0,60).map(esc).join('<br>')}</div>` : ''}
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+}
+
+async function doEntryReprice(){
+  const plan = window.__pi_entry_plan;
+  if(!plan || !plan.canWrite || !plan.writes.length){ toast('ไม่มี preview ที่พร้อมเขียน — เปิดหน้าต่างใหม่', 'err'); return; }
+  const ym = plan.ym, m = ymToFull(ym);
+  const importData = await loadPriceImportData(ym);
+  const target = Object.fromEntries(plan.itemPlan.toWrite.map(w => [w.code, w]));
+  const progress = t => showModal(`<h3>🔁 ปรับราคาที่ตรึงในรายการนับ ${esc(m)}</h3><p style="margin-top:10px;font-size:13px">${t}</p>`);
+
+  // 1) restore point: every store's month, exactly as it is right now
+  progress('⏳ กำลังสำรองข้อมูลทุกสาขา…');
+  const allE0 = await dbGet('entries') || {};
+  const before = {};
+  Object.keys(allE0).forEach(sNo => { const x = (allE0[sNo] || {})[ym]; if(x) before[sNo] = x; });
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  downloadJsonFile(`bakery_entries_${ym}_BEFORE_reprice_${ts}.json`, { ym, takenAt: Date.now(), stores: before });
+
+  // 2) per store: fresh read -> re-check each row is still as previewed -> write the two price leaves only
+  const r = await priceLeafWriteByStore(ym, plan.writes,
+    (raw, w) => {
+      const e = normalizeEntry(raw);
+      return hasPriceSnapshot(e) && e.priceUom_at_count === target[w.code].priceUom &&
+             Math.abs(e.price_at_count - w.fromPrice) < 1e-9 && (e.priceBasis_at_count || null) === (w.fromBasis || null);
+    },
+    w => ({ price_at_count: w.toPrice, priceBasis_at_count: 'EX_VAT' }),
+    (sNo, i, n, wr) => progress(`⏳ กำลังเขียน… สาขา ${esc(sNo)} (${i}/${n}) — ปรับแล้ว ${wr} แถว`));
+  Object.values(r.written).forEach(w => { w.expect = { price_at_count: w.toPrice, priceBasis_at_count: 'EX_VAT' }; });
 
   // 3) verify against the restore point, from a fresh read
   progress('⏳ กำลังตรวจสอบหลังเขียน…');
   const allE1 = await dbGet('entries') || {};
-  const v = verifySeptemberReprice(before, allE1, written);
+  const v = verifyPriceLeaves(ym, before, allE1, r.written, ['price_at_count', 'priceBasis_at_count']);
   await dbPush('logs', {
-    no:'admin', name:(SES && SES.name) || 'admin', ts:Date.now(), action:'septemberEntryReprice', source:'admin-override', ym: SEP_IMPORT_YM,
-    rowsWritten: Object.keys(written).length, storesWritten: done.length, skippedChanged: skippedChanged.length, failed: failed.length,
-    verifyProblems: v.problems.length, sourceSha256: importData.sourceFiles.FBK.sha256
+    no:'admin', name:(SES && SES.name) || 'admin', ts:Date.now(), action:'monthlyEntryReprice', source:'admin-override', ym,
+    rowsWritten: Object.keys(r.written).length, storesWritten: r.done.length, skippedChanged: r.skippedChanged.length, failed: r.failed.length,
+    verifyProblems: v.problems.length, sourceSha256: Object.fromEntries(Object.entries(importData.sourceFiles).map(([k, x]) => [k, x.sha256]))
   });
-  window.__sep_entry_plan = null;
-  const ok = !failed.length && !v.problems.length;
+  window.__pi_entry_plan = null;
+  priceWriteResultModal(`ปรับราคาที่ตรึงในรายการนับ ${esc(m)}`, !r.failed.length && !v.problems.length,
+    `เขียน <b>${fNum(Object.keys(r.written).length,0)}</b> แถว จาก ${r.done.length}/${r.storeNos.length} สาขา · ข้าม (เปลี่ยนไประหว่างรอ) ${r.skippedChanged.length} · ผิดพลาด ${r.failed.length}<br>`, v,
+    (r.failed.length ? `<div style="margin-top:8px;color:var(--red);font-size:12px">${r.failed.map(esc).join('<br>')}<br>รันใหม่เพื่อทำต่อ (ข้ามแถวที่ปรับแล้ว)</div>` : '') +
+    (r.skippedChanged.length ? `<div style="margin-top:8px;color:var(--warn);font-size:12px">ข้าม: ${r.skippedChanged.slice(0,20).map(esc).join(', ')}${r.skippedChanged.length>20?' …':''} — รันใหม่เพื่อดูว่ายังเหลือไหม</div>` : '') +
+    `<div style="margin-top:8px;font-size:12px;color:var(--txt3)">ไฟล์สำรองก่อนเขียนอยู่ในโฟลเดอร์ดาวน์โหลดของเบราว์เซอร์ (bakery_entries_${esc(ym)}_BEFORE_reprice_*.json)</div>`);
+}
+
+/* ── (3) freeze months that were never price-stamped ──
+   A row is frozen by stamping it exactly as doSaveEntry() would have (item master's price /
+   priceUom / priceBasis at this moment) — and ONLY if that leaves the row's estimated value
+   unchanged, to the cent. Rows where it would change (e.g. entry.uom/sub_uom null or an
+   entry pack that disagrees with master_uom, so the snapshot branch of estCostOf() prices it
+   differently) are skipped and listed, never forced. So freezing never moves any total: it
+   only pins the number that is on screen today. Months still open for counting are refused. */
+function computeFreezePlan(allE, mc){
+  const itemMap = Object.fromEntries(ITEMS_DATA.map(it => [it.code, it]));
+  return priceImportMonths(allE).map(ym => {
+    const p = { ym, open: !!(mc[ym] && mc[ym].active === true), rows: 0, stamped: 0, legacy: 0, malformed: 0, unpriced: 0, valueChange: [], writes: [], deltaSum: 0, stores: new Set() };
+    Object.keys(allE).forEach(sNo => {
+      const month = (allE[sNo] || {})[ym];
+      if(!month || typeof month !== 'object') return;
+      Object.keys(month).forEach(code => {
+        p.rows++;
+        const raw = month[code];
+        if(raw === null || typeof raw !== 'object'){ p.legacy++; return; }                    // bare legacy value: never stamped
+        if(raw.qty == null || raw.qty === ''){ p.malformed++; return; }
+        const e = normalizeEntry(raw);
+        if(hasPriceSnapshot(e)){ p.stamped++; return; }
+        const item = itemMap[code];
+        if(!item || item.priceStatus === 'NO_CONFIRMED_PRICE' || item.price == null || !item.priceUom){ p.unpriced++; return; }   // nothing to freeze (same rule as doSaveEntry)
+        const stampedE = { ...e, price_at_count: Number(item.price), priceUom_at_count: item.priceUom, priceBasis_at_count: item.priceBasis != null ? item.priceBasis : null };
+        const c0 = estCostOf(code, e), c1 = estCostOf(code, stampedE);
+        if((c0 == null) !== (c1 == null) || (c0 != null && Math.abs(c0 - c1) > 0.005)){ p.valueChange.push({ sNo, code, before: c0, after: c1 }); return; }
+        p.writes.push({ sNo, code, price: Number(item.price), priceUom: item.priceUom, priceBasis: item.priceBasis != null ? item.priceBasis : null, value: c0 || 0 });
+        p.deltaSum += (c1 || 0) - (c0 || 0);
+        p.stores.add(sNo);
+      });
+    });
+    p.total = p.writes.reduce((a, w) => a + w.value, 0);
+    return p;
+  });
+}
+
+async function showFreezeMonthsModal(){
+  showModal(`<h3>🧊 ตรึงราคาเดือนที่ยังลอยอยู่</h3><p style="margin-top:10px;color:var(--txt3)">⏳ กำลังอ่านรายการนับทุกสาขา…</p>`);
+  let plans;
+  try {
+    const allE = await dbGet('entries') || {};
+    const mc = await getMonthControl();
+    plans = computeFreezePlan(allE, mc);
+  } catch(e){
+    showModal(`<h3>🧊 ตรึงราคาเดือนที่ยังลอยอยู่</h3><p style="color:var(--red);margin-top:10px">ไม่สำเร็จ: ${esc(e.message)}</p><div class="modal-actions"><button class="btn btn-secondary" onclick="showMonthlyPriceHub()">← กลับ</button></div>`);
+    return;
+  }
+  window.__pi_freeze_plans = plans;
+  const body = plans.map((p, i) => {
+    const can = !p.open && p.writes.length > 0;
+    return `<tr>
+      <td><input type="checkbox" id="fz_${i}" ${can ? 'checked' : 'disabled'}></td>
+      <td>${esc(ymToFull(p.ym))}${p.open ? ' <span style="color:var(--warn);font-size:11px">· ยังเปิดนับอยู่ — ไม่ตรึง</span>' : ''}</td>
+      <td class="tr num">${fNum(p.rows,0)}</td><td class="tr num">${fNum(p.stamped,0)}</td>
+      <td class="tr num"><b>${fNum(p.writes.length,0)}</b></td>
+      <td class="tr num">${fNum(p.unpriced,0)}</td><td class="tr num" style="color:${p.valueChange.length ? 'var(--warn)' : 'inherit'}">${fNum(p.valueChange.length,0)}</td>
+      <td class="tr num">${fNum(p.legacy + p.malformed,0)}</td>
+      <td class="tr num">฿${fNum(p.total,2)}</td></tr>`;
+  }).join('');
+  const vc = plans.flatMap(p => p.valueChange.slice(0, 6).map(x => ({ ym: p.ym, ...x })));
   showModal(`
-    <h3>${ok ? '✅' : '⚠️'} ปรับราคาที่ตรึงในรายการนับ ก.ย. 69 — ${ok ? 'เสร็จสมบูรณ์' : 'ต้องตรวจสอบ'}</h3>
-    <div style="margin-top:10px;font-size:13px;line-height:1.8">
-      เขียน <b>${fNum(Object.keys(written).length,0)}</b> แถว จาก ${done.length}/${storeNos.length} สาขา ·
-      ข้าม (เปลี่ยนไประหว่างรอ) ${skippedChanged.length} · ผิดพลาด ${failed.length}<br>
-      ตรวจหลังเขียน: ตรวจ ${fNum(v.rowsChecked,0)} แถว · ราคาตรงแผน ${fNum(v.priceFieldsOk,0)} ·
-      <b style="color:${v.problems.length ? 'var(--red)' : 'var(--green)'}">ปัญหา ${v.problems.length}</b>
-      ${v.problems.length === 0 ? '— ทุกฟิลด์ที่ไม่ใช่ราคา (qty, หน่วย, ขนาดบรรจุ, เศษ, เวลานับ, การยืนยัน) เหมือนก่อนเขียนทุกแถว' : ''}
+    <h3>🧊 ตรึงราคาเดือนที่ยังลอยอยู่</h3>
+    <p style="color:var(--txt2);margin-top:8px;font-size:12.5px;line-height:1.7">
+      แถวที่ยังไม่ตรึงราคา (ก่อน T11) ใช้ราคา<b>ปัจจุบัน</b>ของรายการสินค้า ทำให้ยอดเดือนเก่าขยับทุกครั้งที่นำเข้าราคาใหม่ —
+      ปุ่มนี้ตรึงแต่ละแถวที่ราคาที่เห็นอยู่ ณ ตอนนี้ (<code>price_at_count</code>, <code>priceUom_at_count</code>, <code>priceBasis_at_count</code>)
+      <b>เฉพาะแถวที่ตรึงแล้วยอดไม่เปลี่ยนแม้แต่สตางค์</b> · ไม่แตะจำนวนนับ/หน่วย/ขนาดบรรจุ/เศษ · ไม่ตรึงเดือนที่ยังเปิดนับอยู่
+    </p>
+    ${piTbl('<th></th><th>เดือน</th><th class="tr">แถวทั้งหมด</th><th class="tr">ตรึงแล้ว</th><th class="tr">จะตรึง</th><th class="tr">ไม่มีราคา</th><th class="tr">ยอดจะเปลี่ยน (ข้าม)</th><th class="tr">เก่า/ผิดรูป</th><th class="tr">มูลค่าที่ตรึง</th>', body, 240)}
+    <div style="margin-top:8px;font-size:12px;color:var(--txt3);line-height:1.7">
+      ยอดรวมของเดือนที่เลือก<b>ไม่เปลี่ยน</b>จากการตรึง (ผลต่างรวมที่คำนวณได้:
+      ${plans.map(p => `${esc(p.ym)} ฿${fNum(p.deltaSum,2)}`).join(' · ')}) ·
+      "ไม่มีราคา" = สินค้ายังไม่มีราคา จึงไม่มีอะไรให้ตรึง (เหมือนที่ doSaveEntry ไม่ตรึง) ·
+      "เก่า/ผิดรูป" = ค่าเก่าที่เก็บเป็นตัวเลขเปล่าไม่มีหน่วย (เช่น มิ.ย. 69 ทั้งเดือน) — ตรึงไม่ได้เพราะไม่เดาหน่วย
     </div>
-    ${failed.length ? `<div style="margin-top:8px;color:var(--red);font-size:12px">${failed.map(esc).join('<br>')}<br>รันใหม่เพื่อทำต่อ (ข้ามแถวที่ปรับแล้ว)</div>` : ''}
-    ${skippedChanged.length ? `<div style="margin-top:8px;color:var(--warn);font-size:12px">ข้าม: ${skippedChanged.slice(0,20).map(esc).join(', ')}${skippedChanged.length>20?' …':''} — รันใหม่เพื่อดูว่ายังเหลือไหม</div>` : ''}
-    ${v.problems.length ? `<div class="tbl-wrap" style="max-height:200px;margin-top:8px;font-size:12px;color:var(--red)">${v.problems.slice(0,60).map(esc).join('<br>')}</div>` : ''}
-    <div style="margin-top:8px;font-size:12px;color:var(--txt3)">ไฟล์สำรองก่อนเขียนอยู่ในโฟลเดอร์ดาวน์โหลดของเบราว์เซอร์ (bakery_entries_${SEP_IMPORT_YM}_BEFORE_reprice_*.json)</div>
+    ${vc.length ? `<div style="margin-top:8px;font-size:12px;color:var(--warn)">⚠️ แถวที่ข้าม เพราะตรึงแล้วยอดจะเปลี่ยน (หน่วย/ขนาดบรรจุในแถวไม่ตรงกับ master_uom) ตัวอย่าง: ${vc.slice(0,12).map(x => esc(x.ym + ' ' + x.sNo + '/' + x.code)).join(', ')}</div>` : ''}
+    <div style="margin-top:12px;padding:10px 13px;background:var(--surface2);border-radius:var(--r8);font-size:12px;line-height:1.7">
+      <b>ก่อนเขียน:</b> ดาวน์โหลดไฟล์สำรองของเดือนที่เลือก อ่านแต่ละสาขาซ้ำก่อนเขียน (ข้ามแถวที่เปลี่ยนไป) เขียนทีละสาขา ทำซ้ำได้ และตรวจหลังเขียนว่าทุกฟิลด์ที่ไม่ใช่ราคาเหมือนเดิม 100%.
+      ควรตรึงก่อนนำเข้าราคาเดือนใหม่ — ไม่เช่นนั้นจะตรึงที่ราคาใหม่
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="showMonthlyPriceHub()">← กลับ</button>
+      <button class="btn btn-secondary" onclick="closeModal()">ปิด (ยังไม่เขียน)</button>
+      <button class="btn btn-blue" onclick="doFreezeMonths()">🧊 ยืนยันตรึงเดือนที่เลือก</button>
+    </div>`);
+}
+
+async function doFreezeMonths(){
+  const plans = window.__pi_freeze_plans || [];
+  const chosen = plans.filter((p, i) => { const el = document.getElementById('fz_' + i); return el && el.checked && !el.disabled && !p.open && p.writes.length; });
+  if(!chosen.length){ toast('ไม่ได้เลือกเดือนที่ตรึงได้', 'err'); return; }
+  const progress = t => showModal(`<h3>🧊 ตรึงราคาเดือนที่ยังลอยอยู่</h3><p style="margin-top:10px;font-size:13px">${t}</p>`);
+  const results = [];
+  for(const p of chosen){
+    const ym = p.ym;
+    progress(`⏳ ${esc(ymToFull(ym))}: กำลังสำรองข้อมูล…`);
+    // Re-check the month is still closed right before writing.
+    if(await isMonthActive(ym)){ results.push({ ym, aborted: 'เดือนนี้ถูกเปิดนับระหว่างรอ — ไม่เขียน' }); continue; }
+    const allE0 = await dbGet('entries') || {};
+    const before = {};
+    Object.keys(allE0).forEach(sNo => { const x = (allE0[sNo] || {})[ym]; if(x) before[sNo] = x; });
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    downloadJsonFile(`bakery_entries_${ym}_BEFORE_freeze_${ts}.json`, { ym, takenAt: Date.now(), stores: before });
+    const itemMap = Object.fromEntries(ITEMS_DATA.map(it => [it.code, it]));
+    const r = await priceLeafWriteByStore(ym, p.writes,
+      (raw, w) => {
+        const e = normalizeEntry(raw);
+        if(hasPriceSnapshot(e)) return false;                                              // stamped meanwhile (e.g. a store saved): leave it
+        const it = itemMap[w.code];
+        if(!it || Number(it.price) !== w.price || it.priceUom !== w.priceUom) return false; // item master moved since the preview
+        const c0 = estCostOf(w.code, e), c1 = estCostOf(w.code, { ...e, price_at_count: w.price, priceUom_at_count: w.priceUom, priceBasis_at_count: w.priceBasis });
+        return (c0 == null) === (c1 == null) && (c0 == null || Math.abs(c0 - c1) <= 0.005);
+      },
+      w => { const o = { price_at_count: w.price, priceUom_at_count: w.priceUom }; if(w.priceBasis != null) o.priceBasis_at_count = w.priceBasis; return o; },
+      (sNo, i, n, wr) => progress(`⏳ ${esc(ymToFull(ym))}: กำลังเขียน… สาขา ${esc(sNo)} (${i}/${n}) — ตรึงแล้ว ${wr} แถว`));
+    Object.values(r.written).forEach(w => { w.expect = { price_at_count: w.price, priceUom_at_count: w.priceUom, priceBasis_at_count: w.priceBasis }; });
+    progress(`⏳ ${esc(ymToFull(ym))}: กำลังตรวจสอบหลังเขียน…`);
+    const allE1 = await dbGet('entries') || {};
+    const v = verifyPriceLeaves(ym, before, allE1, r.written, ['price_at_count', 'priceUom_at_count', 'priceBasis_at_count']);
+    // Totals must be exactly what they were: freezing only pins the number already on screen.
+    const t0 = monthTotalsFor(allE0, ym, ITEMS_DATA), t1 = monthTotalsFor(allE1, ym, ITEMS_DATA);
+    const totalOk = Math.abs(t0.total - t1.total) < 0.01;
+    await dbPush('logs', {
+      no:'admin', name:(SES && SES.name) || 'admin', ts:Date.now(), action:'monthlyFreeze', source:'admin-override', ym,
+      rowsWritten: Object.keys(r.written).length, storesWritten: r.done.length, skippedChanged: r.skippedChanged.length, failed: r.failed.length,
+      verifyProblems: v.problems.length, totalBefore: Math.round(t0.total * 100) / 100, totalAfter: Math.round(t1.total * 100) / 100
+    });
+    results.push({ ym, r, v, t0, t1, totalOk });
+  }
+  window.__pi_freeze_plans = null;
+  const ok = results.every(x => !x.aborted && !x.r.failed.length && !x.v.problems.length && x.totalOk);
+  showModal(`
+    <h3>${ok ? '✅' : '⚠️'} ตรึงราคา — ${ok ? 'เสร็จสมบูรณ์' : 'ต้องตรวจสอบ'}</h3>
+    ${results.map(x => x.aborted ? `<div style="margin-top:10px;color:var(--red)">${esc(ymToFull(x.ym))}: ${esc(x.aborted)}</div>` : `
+      <div style="margin-top:10px;font-size:13px;line-height:1.8"><b>${esc(ymToFull(x.ym))}</b>: ตรึง ${fNum(Object.keys(x.r.written).length,0)} แถว จาก ${x.r.done.length}/${x.r.storeNos.length} สาขา ·
+        ข้าม (เปลี่ยนไประหว่างรอ) ${x.r.skippedChanged.length} · ผิดพลาด ${x.r.failed.length}<br>
+        ยอดรวมประมาณการ ก่อน ฿${fNum(x.t0.total,2)} → หลัง ฿${fNum(x.t1.total,2)}
+        <b style="color:${x.totalOk ? 'var(--green)' : 'var(--red)'}">${x.totalOk ? '(ไม่เปลี่ยน ✓)' : '(เปลี่ยน — ตรวจสอบ!)'}</b><br>
+        ตรวจ ${fNum(x.v.rowsChecked,0)} แถว · ตรงแผน ${fNum(x.v.leavesOk,0)} · <b style="color:${x.v.problems.length ? 'var(--red)' : 'var(--green)'}">ปัญหา ${x.v.problems.length}</b>
+        ${x.r.failed.length ? `<div style="color:var(--red);font-size:12px">${x.r.failed.map(esc).join('<br>')} — รันใหม่เพื่อทำต่อ</div>` : ''}
+        ${x.v.problems.length ? `<div class="tbl-wrap" style="max-height:140px;font-size:12px;color:var(--red)">${x.v.problems.slice(0,40).map(esc).join('<br>')}</div>` : ''}
+      </div>`).join('')}
+    <div style="margin-top:8px;font-size:12px;color:var(--txt3)">ไฟล์สำรองก่อนเขียนอยู่ในโฟลเดอร์ดาวน์โหลดของเบราว์เซอร์ (bakery_entries_YYYY-MM_BEFORE_freeze_*.json)</div>
     <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
 }
 
