@@ -67,6 +67,7 @@ The original doc lists 9 tickets; T10 and T11 were added after it was written.
 | T10 | 🔴 P0 | Admin-visible reference band + outlier no-coverage state | ✅ merged |
 | T11 | 🟡 P2 | Snapshot price onto the entry at save time (**prerequisite for T8**) | ✅ merged — bakery's shape diverges from packaging's, see Q3 below |
 | T8a | 🟡 P2 | One-off August 2026 price import (**bakery only**, narrowed from T8, see kickoff doc) | ✅ done — run against production 25 Aug 2026 |
+| T8b | 🟡 P2 | One-off September 2026 price import + re-price of saved September entries (**bakery only**) | 🛠 **built and verified in `demo/`, NOT yet run against production** — see "T8b" below |
 
 T1–T7, T10, T11 and T8a are done in both repos where applicable (T8a is bakery-only). **Bakery's T11 diverges from packaging's shape** — see T11's "What's done" section for why. **T8 proper (the recurring import mechanism) remains open** — T8a only applied one month's numbers, it did not build the upload UI.
 
@@ -376,6 +377,63 @@ headroom). `DB_ROOT` was never set to `'demo'` for this ticket — both writes w
 to production per the kickoff doc's explicit build→preview→wait→confirm sequence; every
 number was preview-verified against live data before either write fired, and re-verified
 against a fresh Firebase read after.
+
+### T8b — September 2026 price import (built 2 Oct 2026; **not yet fired against production**)
+
+Source: `Bakery - September.zip` (three Code 206 workbooks, prices confirmed 1–30 Sep 2026): the
+main **FBK** list (all stores) plus two store-specific lists (stores 2/17/57, and the
+22/350/121/138… group). Extracted by `tools/extract_price_import_2026-09.py` (self-verifying;
+refuses to write on any count mismatch) into the committed `docs/price_import_2026-09.json`.
+Rules, decided with the project owner: EX VAT only · main FBK price wins · a store-file price is
+used only for a code FBK does not price · rows saying "use store retail cost" carry no price and
+are never written as one · items not live in the app (no `master_uom.json` conversion) are
+**skipped, never added** · the app has one global price per item, so store membership is context only.
+
+Two separate writes, each with its own preview and its own confirm (admin → จัดการรายการสินค้า):
+
+1. **📥 นำเข้าราคา ก.ย. 69 (ขั้น 1)** — `masterData/items`: `price`, `priceUom` (kept), `priceBasis:'EX_VAT'`,
+   `priceEffectiveFrom:'2026-09'`, `priceSource:'code-206-2026-09'`. Plan against production on 2 Oct:
+   206 items written (61 price changes, 80 IN_VAT→EX_VAT with the same underlying price, 65 already
+   equal), 164 untouched (incl. 16 whose sheet row says "use store retail cost"), 62 priced codes skipped
+   because they are not live. IN_VAT residual 211 → 126. Refuses to write if production moved since the tab
+   loaded, and downloads a restore-point JSON first.
+2. **🔁 ปรับราคาที่ตรึงใน ก.ย. (ขั้น 2)** — re-prices already-saved **2026-09** entries. The one deliberate
+   exception to T11's "stamped once, never re-stamped" (owner decision, 2 Oct). It writes **only** the two leaves
+   `price_at_count` and `priceBasis_at_count` at their exact paths — never a whole row — so qty, uom, pack_size,
+   subunit_qty, sub_uom, counted_at and the T2 confirmation fields cannot be touched. Un-stamped rows are not
+   written (they float on the item master, which step 1 re-prices); legacy/malformed rows and rows whose stamped
+   `priceUom` ≠ the item's are skipped and listed. Per store: fresh read → re-check each row is still as previewed
+   → write → next; a changed row is skipped, never forced. Downloads a full September backup first, verifies
+   afterwards that every non-price field of every row equals the backup, and logs `septemberEntryReprice`.
+   Idempotent — a re-run skips rows already at the target, so a partial failure resumes. Plan against production
+   on 2 Oct: 18,359 rows / 161 stores / 141 codes; 8,464 already current; 19,599 rows are for items not in the
+   price file and stay as they are.
+
+**Order and timing.** Run step 1 then step 2, when no store has the count page open (a tab loaded before step 2
+and saved after it would write the old stamps back; the post-write check would show it). `DB_ROOT` stays `''`;
+the run is from an admin session, same as T8a.
+
+**Expected movement — read before firing.** September estimated total ฿67.45M → ฿72.20M (+7.0%); stores above
+their reference band 13 → 26. Most of it is two things: (a) wrong live prices being corrected — `603090` alone
+(฿49.74 → ฿1,539.40 per กล่อง) is ≈฿1.97M of the ≈฿4.75M rise; `213860` (฿21.08 → ฿728.48), `115101` and
+`916867` were manual September edits replaced by the file's value, as agreed; (b) packaging items back up 31–63%
+(August had cut them, e.g. `922291` 819.67 → 1,340). The IN→EX switches alone lower the total by ≈฿0.96M.
+**Step 1 also restates months that were never stamped (T11 was no-backfill): June 2026 +7.0% and July 2026 +4.9%**
+(the modal shows it before confirm). August is fully stamped and does not move.
+
+**Verified (2 Oct 2026):** the item-master plan and the entry plan were each recomputed independently in Python
+(from the raw sheets / a restore-point of production) and matched the app's plan exactly (206 rows and 18,359 rows,
+identical checksums). Both writes were then run end-to-end under `DB_ROOT='demo'` (scratch copy, fixtures incl. edge
+cases: un-stamped, unit-mismatch, legacy bare value, qty 0, rows with extra fields): 643/643 rows re-priced as
+planned, 0 non-price fields changed across 1,610 rows, skipped rows untouched, re-run wrote nothing. `demo/` was
+restored afterwards. Nothing was written to production.
+
+**Left for later (needs input, not code):** 90 codes in the sheets are not live; none has a pack conversion.
+`docs/pack_conversion_draft_2026-09.xlsx` is a name-derived *draft* (confidence-rated) for the Buyer to confirm;
+adding them also needs a verified Class and the `master_uom.json` entry first (see `CLAUDE.md`). `873898` is the
+corrected code of live `873989`, deferred since 2 Sep; `202955` is probably a typo for live `202995`.
+Unresolved by design: 17 codes are priced differently between the main file and a store file (main file used; the
+modal lists them) — per-store pricing is not supported.
 
 ## Departures from the original plan doc
 

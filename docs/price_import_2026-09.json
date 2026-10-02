@@ -1,0 +1,3901 @@
+{
+ "effectiveFrom": "2026-09",
+ "basis": "EX_VAT",
+ "priceSource": "code-206-2026-09",
+ "generatedBy": "tools/extract_price_import_2026-09.py",
+ "sourceFiles": {
+  "S22": {
+   "file": "Bakery Inventory Adjustment-  2026 22_350_121_138_139_140_141_142_62_528_143_145_148_149_150_352[79].xlsx",
+   "sha256": "a88b872b39238bfb80c51fb9f46393f6a5454585e86e7b122ab93a86f27a6a8c"
+  },
+  "S2": {
+   "file": "Bakery Inventory Adjustment-  2026 2_17_57.xlsx",
+   "sha256": "31192220024cbfa099c4d8d68d2dd8cefd9066caf05ccab06cfbb2ab9cb9d579"
+  },
+  "FBK": {
+   "file": "Bakery Inventory Adjustment- FBK.xlsx",
+   "sha256": "3684569df413aa884f61cf6d0a25c209f19719a8624fa09e6a7cfe1a318adfc1"
+  }
+ },
+ "sourceHeaderNotes": {
+  "S22": [
+   "เรียน:SGM สาขา 145, สาขา 138 ,สาขา 139 , สาขา 140 , สาขา 141, สาขา 142 , สาขา 62 , สาขา 148,สาขา 121",
+   "สาขา 149,สาขา 150, สาขา 143  และสาขา 151",
+   "เรียน:สาขาผู้ผลิตBakery",
+   "ดังนั้น:เมื่อต้องการเบิกใช้ให้สาขาทำการโอนสินค้าโดยการปรับ Inventory Adjustment Reason code 206 : Tr. Bakery Production",
+   "แต่ต้องให้SGMของสาขานั้นๆพิจารณาอนุมัติทุกครั้งในการเบิกสินค้า โดยมีรายการสินค้าดังนี้",
+   "ราคายืนยันระหว่าง วันที่ 1 -30 กันยายน 2569    (รายการสินค้าเฉพาะสาขา /สาขา 138 เหม่งจ๋าย/ 139 สุขุมวิท 22 / 141 ลำลูกกา",
+   "/ 62 ราไวย์/140 ถนนจันทร์/ 142 แพรกษา/ 143 ประดิษฐ์มนูธรรม/ 121 บดินทร์เดชา/ 148 เลียบคลองสอง / 149 อ้อมน้อย  และสาขา145 พงษ์เพชร"
+  ],
+  "S2": [
+   "เรียน:SGM สาขา 2, สาขา 17 ,สาขา 57",
+   "เรียน:สาขาผู้ผลิตBakery",
+   "ดังนั้น:เมื่อต้องการเบิกใช้ให้สาขาทำการโอนสินค้าโดยการปรับ Inventory Adjustment Reason code 206 : Tr. Bakery Production",
+   "แต่ต้องให้SGMของสาขานั้นๆพิจารณาอนุมัติทุกครั้งในการเบิกสินค้า โดยมีรายการสินค้าดังนี้",
+   "ราคายืนยันระหว่าง วันที่ 1 -30 กันยายน 2569    (รายการสินค้าเฉพาะสาขา 2 แจ้งวัฒนะ / สาขา 17 จรัญสนิทวงศ์ / สาขา 57 บางพลี)"
+  ],
+  "FBK": [
+   "เรียน:SGM สาขา",
+   "เรียน:สาขาผู้ผลิตBakery",
+   "ดังนั้น:เมื่อต้องการเบิกใช้ให้สาขาทำการโอนสินค้าโดยการปรับ Inventory Adjustment Reason code 206 : Tr. Bakery Production",
+   "แต่ต้องให้SGMของสาขานั้นๆพิจารณาอนุมัติทุกครั้งในการเบิกสินค้า โดยมีรายการสินค้าดังนี้",
+   "ราคายืนยันระหว่าง วันที่ 1 -30 กันยายน 2569"
+  ]
+ },
+ "expected": {
+  "FBK": {
+   "table_rows": 242,
+   "unique_codes": 240,
+   "priced_unique": 240
+  },
+  "S22": {
+   "table_rows": 83,
+   "unique_codes": 82,
+   "priced_unique": 54
+  },
+  "S2": {
+   "table_rows": 61,
+   "unique_codes": 59,
+   "priced_unique": 34
+  },
+  "unique_codes_all_files": 312
+ },
+ "summary": {
+  "unique_codes_all_files": 312,
+  "priced_rows": 268,
+  "from_FBK": 240,
+  "from_store_file_only": 28,
+  "conflict_unresolved": 1,
+  "store_cost_only": 43
+ },
+ "rows": [
+  {
+   "code": "106901",
+   "name": "RM_อิมพีเรียลเรดดี้เจลนิวทรอล1กก.",
+   "class": "68",
+   "exVat": 90.2,
+   "inVat": 96.51400000000001,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "111418",
+   "name": "พายกะหรี่ไก่90กรัม*50ชิ้น",
+   "class": "68",
+   "exVat": 609.5,
+   "inVat": 652.165,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "111419",
+   "name": "พายสับปะรด85กรัมX50ชิ้น",
+   "class": "68",
+   "exVat": 609.5,
+   "inVat": 652.165,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "112057",
+   "name": "หมูหยองหมูผสมไก่สูตรสีเข้ม1กก.X5",
+   "class": "68",
+   "exVat": 1100.0,
+   "inVat": 1177.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "115101",
+   "name": "เอเวิร์ธ สวีสโรลมิลค์75กX48ชX2พX1",
+   "class": "68",
+   "exVat": 1361.5894,
+   "inVat": 1456.900658,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "117679",
+   "name": "ทองหล่อ ช็อกโกแลตเรนโบว์ไรซ์1กกX1",
+   "class": "-",
+   "exVat": 155.0,
+   "inVat": 165.85,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "117886",
+   "name": "มินิครัวซองต์20ก.X360ชิ้น",
+   "class": "68",
+   "exVat": 1360.0,
+   "inVat": 1455.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "120131",
+   "name": "ไส้เผือก2กก.*5",
+   "class": "68",
+   "exVat": 1180.0,
+   "inVat": 1262.6,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "120136",
+   "name": "ไส้สังขยา2กก.*5",
+   "class": "68",
+   "exVat": 770.0,
+   "inVat": 823.9,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "120137",
+   "name": "ไส้ถั่วแดง2กก.*5",
+   "class": "68",
+   "exVat": 760.0,
+   "inVat": 813.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "125583",
+   "name": "อิมพีเรียล ครีมมี่คัสตาร์ดผง 750ก",
+   "class": "-",
+   "exVat": 137.5,
+   "inVat": 147.125,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "125787",
+   "name": "แฮมไก่ คลาสสิค1กก.X4",
+   "class": "68",
+   "exVat": 620.0,
+   "inVat": 663.4,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "125789",
+   "name": "เบคอนคลาสสิค1กก.*4",
+   "class": "68",
+   "exVat": 1084.0,
+   "inVat": 1159.88,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "125844",
+   "name": "ไส้กรอกเวียนนาAคลาสสิค(ไก่ผสมหมู)",
+   "class": "68",
+   "exVat": 440.0,
+   "inVat": 470.8,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "125892",
+   "name": "แฮมหมูคลาสสิค1กก.*4",
+   "class": "68",
+   "exVat": 728.0,
+   "inVat": 778.96,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "127347",
+   "name": "RM_กล่องโดนัท 300 ชิ้น X 1",
+   "class": "78",
+   "exVat": 1308.0,
+   "inVat": 1399.56,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "128947",
+   "name": "RM_โดขนมปังหวานแช่แข็ง30กX225ชนX1",
+   "class": "68",
+   "exVat": 708.75,
+   "inVat": 758.3625,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "136820",
+   "name": "อิมพีเรียล น้ำตาลไอซิ่ง 800 ก.",
+   "class": "-",
+   "exVat": 26.675,
+   "inVat": 28.542250000000003,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "140308",
+   "name": "RM_กล่องฝาพับ(MAK11)140ชิ้น X 1",
+   "class": "68",
+   "exVat": 1829.8,
+   "inVat": 1957.886,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "141305",
+   "name": "พายทูน่า85ก.*50 ชิ้น",
+   "class": "68",
+   "exVat": 624.34,
+   "inVat": 668.0438,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "141425",
+   "name": "กาลิคสเปรด1000*6",
+   "class": "68",
+   "exVat": 820.0,
+   "inVat": 877.4,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "150645",
+   "name": "เชอร์รี่เยลลี่ บอลสีแดง 55 ลูกX1",
+   "class": "-",
+   "exVat": 27.18,
+   "inVat": 29.0826,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "154796",
+   "name": "ถุงบีบซีลอัลตร้า18นิ้ว สีฟ้า",
+   "class": "68",
+   "exVat": 2500.0,
+   "inVat": 2675.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "154810",
+   "name": "CITRI-FI200 FG 1*20 KG.",
+   "class": "68",
+   "exVat": 10300.0,
+   "inVat": 11021.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "154813",
+   "name": "KRAFTKORN MIX 1*10KG.",
+   "class": "68",
+   "exVat": 1680.0,
+   "inVat": 1797.6,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "155074",
+   "name": "คอร์นมิกซ์ 10กก.*1",
+   "class": "68",
+   "exVat": 1790.0,
+   "inVat": 1915.3,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "155110",
+   "name": "แป้งไรย์ชนิดละเอียด 5กก.*1",
+   "class": "68",
+   "exVat": 506.0,
+   "inVat": 541.42,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "155112",
+   "name": "นันแดรี่วิปปิ้งครีม1000ซีซี*12",
+   "class": "68",
+   "exVat": 1478.0,
+   "inVat": 1581.46,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "155191",
+   "name": "เรดดี้เจลนิวทรอล 12กระป๋อง*1กก.",
+   "class": "68",
+   "exVat": 1082.4,
+   "inVat": 1158.1680000000001,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "155218",
+   "name": "เอสพีโกลด์ 20กก.*1",
+   "class": "68",
+   "exVat": 2230.0,
+   "inVat": 2386.1,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "162408",
+   "name": "เดนิชแผ่น10'X20\"(20แผ่น)",
+   "class": "68",
+   "exVat": 1490.0,
+   "inVat": 1594.3,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "163372",
+   "name": "เดนิชชอคโกแลต(มือเสือ)43ก.*100",
+   "class": "68",
+   "exVat": 594.29,
+   "inVat": 635.8903,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "163374",
+   "name": "เดนิชสับปะรด(มือเสือ)43กX100ช",
+   "class": "68",
+   "exVat": 594.29,
+   "inVat": 635.8903,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "163376",
+   "name": "เดนิชลูกเกด45ก.*100",
+   "class": "68",
+   "exVat": 594.29,
+   "inVat": 635.8903,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "163379",
+   "name": "เดนิชอัลมอนด์ดีไลท์45ก.*100",
+   "class": "68",
+   "exVat": 594.29,
+   "inVat": 635.8903,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "163385",
+   "name": "ชอคโกแลตชิพสติ๊ก45ก.*100",
+   "class": "68",
+   "exVat": 594.29,
+   "inVat": 635.8903,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "165463",
+   "name": "ครัวซองต์เนยสด50 ก.X180ชิ้น",
+   "class": "68",
+   "exVat": 1836.0,
+   "inVat": 1964.52,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2",
+    "S22"
+   ]
+  },
+  {
+   "code": "182866",
+   "name": "เบคกิ้งโซดาตราเบสท์โอเดอร์500ก*1",
+   "class": "-",
+   "exVat": 26.0,
+   "inVat": 27.82,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "183153",
+   "name": "ทิวลิปดาร์คชอคโกแลตชิพกลาง550กX2",
+   "class": "-",
+   "exVat": 227.8,
+   "inVat": 243.746,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "183167",
+   "name": "ทิวลิป ผงโกโก้สีน้ำตาล 440ก. X 2",
+   "class": "-",
+   "exVat": 303.09,
+   "inVat": 324.30629999999996,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "183192",
+   "name": "RM_โดว์มัฟฟินช็อกโกแลต1กกx5ถx1",
+   "class": "68",
+   "exVat": 590.0,
+   "inVat": 631.3,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "183443",
+   "name": "BF ฟิลลิ่งแอลซีสตรอเบอร์รี่ 900ก.",
+   "class": "-",
+   "exVat": 38.84,
+   "inVat": 41.558800000000005,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "183444",
+   "name": "BF ฟิลลิ่งวานิลลา 900ก.",
+   "class": "-",
+   "exVat": 40.315,
+   "inVat": 43.137049999999995,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "183452",
+   "name": "BF ฟิลลิ่งบลูเบอร์รี่ 900ก.",
+   "class": "-",
+   "exVat": 40.315,
+   "inVat": 43.137049999999995,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "183472",
+   "name": "BF ฟิลลิ่งคัสตาร์ดใบเตย 900ก.",
+   "class": "-",
+   "exVat": 40.315,
+   "inVat": 43.137049999999995,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "190398",
+   "name": "RM_คุกกี้ช็อกชิพเฮอร์ชีส์35กx80ช",
+   "class": "68",
+   "exVat": 1554.29,
+   "inVat": 1663.0903,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "195653",
+   "name": "กล่องใส่เค้ก 1*25 ชิ้น",
+   "class": "68",
+   "exVat": 428.2,
+   "inVat": 458.174,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "197135",
+   "name": "สติ๊กเกอร์ขนมปังกระเทียมFZ2000ใบ",
+   "class": "68",
+   "exVat": 7000.0,
+   "inVat": 7490.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "198311",
+   "name": "เบคซอฟท์เบรดพรีมิกซ์10กก*1",
+   "class": "68",
+   "exVat": 950.0,
+   "inVat": 1016.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "198389",
+   "name": "สติ๊กเกอร์สายคาดชีตทาร์ต1500ช.X1",
+   "class": "68",
+   "exVat": 1350.0,
+   "inVat": 1444.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "198696",
+   "name": "เนยขาว ตรา แกรนด์ 15 กก.X1",
+   "class": "68",
+   "exVat": 1041.0,
+   "inVat": 1113.87,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "200667",
+   "name": "กระดาษรองอบ 40*60 ซม.",
+   "class": "68",
+   "exVat": 1350.0,
+   "inVat": 1444.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "200669",
+   "name": "กระดาษลอกลาย 30\"*20\"",
+   "class": "68",
+   "exVat": 930.0,
+   "inVat": 995.1,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "204345",
+   "name": "BF ผงฟู สูตรดับเบิลแอ็คติง 1 กก.",
+   "class": "-",
+   "exVat": 106.74,
+   "inVat": 114.2118,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "204492",
+   "name": "แป้งมอยส์ชอคโกแลตมิกซ์ 20กก*1ถุง",
+   "class": "68",
+   "exVat": 2710.0,
+   "inVat": 2899.7,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "205225",
+   "name": "แป้งสาลีโกลด์เด้นมิกซ์ 22.5 กก*1",
+   "class": "68",
+   "exVat": 748.6,
+   "inVat": 801.0020000000001,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "213860",
+   "name": "เอโร่เปลือกทาร์ตFZ18ชนX16",
+   "class": "68",
+   "exVat": 728.4768,
+   "inVat": 779.470176,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2",
+    "S22"
+   ]
+  },
+  {
+   "code": "213966",
+   "name": "เอโร่เปลือกทาร์ตFZ18ชิ้น",
+   "class": "68",
+   "exVat": 45.6954,
+   "inVat": 48.894078,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "225705",
+   "name": "RM_สายคาดสวิสมิลค์โรล 300 ชิ้น X1",
+   "class": "68",
+   "exVat": 600.0,
+   "inVat": 642.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "226346",
+   "name": "บรักกิ้มานยีสต์น้ำตาล10กก",
+   "class": "68",
+   "exVat": 1525.0,
+   "inVat": 1631.75,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "227848",
+   "name": "แป้งไดบาเก็ต10%  25กกX1",
+   "class": "68",
+   "exVat": 5860.0,
+   "inVat": 6270.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "229362",
+   "name": "สติ๊กเกอร์อัลมอนด์ดีไลท์500 ช.x1",
+   "class": "68",
+   "exVat": 460.0,
+   "inVat": 492.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "230753",
+   "name": "ยูโรเปี้ยนมัฟฟิน มิกส์ 15กกX1",
+   "class": "68",
+   "exVat": 1200.0,
+   "inVat": 1284.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "230754",
+   "name": "กล่องใส่เค้ก1X50ชิ้น (ลดครึ่งยาว)",
+   "class": "68",
+   "exVat": 635.2,
+   "inVat": 679.6640000000001,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "230761",
+   "name": "โคโค่มิกซ์1*10กก.",
+   "class": "68",
+   "exVat": 1500.0,
+   "inVat": 1605.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "230806",
+   "name": "เชื้อกลิ่นเนยวานิลลา 1กก.",
+   "class": "68",
+   "exVat": 650.0,
+   "inVat": 695.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "230809",
+   "name": "แป้งวีทบรานแซนด์วิช1*10กก.",
+   "class": "68",
+   "exVat": 750.0,
+   "inVat": 802.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "230810",
+   "name": "เชื้อเข้มข้นกลิ่นกาแฟ1กก.",
+   "class": "68",
+   "exVat": 1100.0,
+   "inVat": 1177.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "230851",
+   "name": "โอวาเล็ต 800 กรัมX1",
+   "class": "68",
+   "exVat": 140.0,
+   "inVat": 149.8,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "234916",
+   "name": "เชื้อกลิ่นวนิลา1กก",
+   "class": "68",
+   "exVat": 700.0,
+   "inVat": 749.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "271038",
+   "name": "RM_ถั่วกรอบแก้วแช่แข็ง1กก.x6ถุงx1",
+   "class": "68",
+   "exVat": 1200.0,
+   "inVat": 1284.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "278504",
+   "name": "RM_เค้กไข่ลูกเกด 25 ก.x54 ชิ้นx1",
+   "class": "68",
+   "exVat": 297.0,
+   "inVat": 317.79,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "281556",
+   "name": "RM_สติ๊กเกอร์เฟรช 1000 ชิ้น x 1",
+   "class": "78",
+   "exVat": 350.0,
+   "inVat": 374.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "295346",
+   "name": "กล่องจตุรัส  MAK10 200 ชิ้นX1",
+   "class": "68",
+   "exVat": 1662.0,
+   "inVat": 1778.34,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "297836",
+   "name": "RM_สติ๊กเกอร์วานิลาเครปเค้ก300ชX1",
+   "class": "68",
+   "exVat": 150.0,
+   "inVat": 160.5,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "298016",
+   "name": "ถาดฟอยล์ เซ็ตถาดฝา 6303-I 400ชน",
+   "class": "68",
+   "exVat": 2640.0,
+   "inVat": 2824.8,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "303819",
+   "name": "RM_กล่องขนมบรรจุ 3 ชิ้น 450ชุดX1",
+   "class": "68",
+   "exVat": 1678.5,
+   "inVat": 1795.995,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "308634",
+   "name": "สติ๊กเกอร์สายคาดชิโอะปัง 500ชน.x1",
+   "class": "68",
+   "exVat": 325.0,
+   "inVat": 347.75,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "311976",
+   "name": "RM_ขนมเปี๊ยะไส้ถั่วเค็ม40กx90ชนx1",
+   "class": "78",
+   "exVat": 360.0,
+   "inVat": 385.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "316825",
+   "name": "เพรสซิเด้นท์ครีมชีส 1.88 กก. X 1",
+   "class": "68",
+   "exVat": 400.0,
+   "inVat": 428.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "317649",
+   "name": "RM_คุกกี้ช็อกโกแลตชิพ45 ก.x80ชx1",
+   "class": "78",
+   "exVat": 1005.71,
+   "inVat": 1076.1097,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "326124",
+   "name": "ถาดฟอยล์สีเงิน 4576I 400ชิ้นX 1",
+   "class": "68",
+   "exVat": 3600.0,
+   "inVat": 3852.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "328980",
+   "name": "RM_ถุงขนมปังบริยอช 30 ชิ้น x 1",
+   "class": "78",
+   "exVat": 162.0,
+   "inVat": 173.34,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "332308",
+   "name": "กล่อง SNACK BOX 300 ใบ x 1",
+   "class": "68",
+   "exVat": 720.0,
+   "inVat": 770.4,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "332584",
+   "name": "RM_มินิเบอเกอร์บัน20กx300ชนx1",
+   "class": "68",
+   "exVat": 525.0,
+   "inVat": 561.75,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "334569",
+   "name": "RM_กล่องฝาพับ ใหญ่ 140ชิ้นX1",
+   "class": "68",
+   "exVat": 2485.0,
+   "inVat": 2658.95,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "338432",
+   "name": "โดว์ขนมปังใบเตยมะพร้าว 80กx80ชนx1",
+   "class": "68",
+   "exVat": 868.57,
+   "inVat": 929.3699,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "344085",
+   "name": "RM_สติ๊กเกอร์คุกกี้เฮอร์ชีส์300ชน",
+   "class": "78",
+   "exVat": 1200.0,
+   "inVat": 1284.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "358213",
+   "name": "RM_สติ๊กเกอร์ครัวซองต์300ชิ้นx1",
+   "class": "78",
+   "exVat": 150.0,
+   "inVat": 160.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "358619",
+   "name": "RM_ครัวซองต์ผสมลูกเกด90กx60ชx1",
+   "class": "68",
+   "exVat": 1200.0,
+   "inVat": 1284.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "361095",
+   "name": "RM_กล่องทาร์ต4ชิ้น(MAK13) 200ชx1",
+   "class": "68",
+   "exVat": 1310.0,
+   "inVat": 1401.7,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "366684",
+   "name": "RM_เฮอร์ชีส์เซมิสวีท285กx12พ",
+   "class": "68",
+   "exVat": 1966.44,
+   "inVat": 2104.0908,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "369345",
+   "name": "RM_โดขนมปังเวียนนา300กx21ชนx1",
+   "class": "68",
+   "exVat": 403.2,
+   "inVat": 431.424,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "369481",
+   "name": "RM_สายคาดคุกกี้เชฟพลอย200ชิ้นx1",
+   "class": "78",
+   "exVat": 190.0,
+   "inVat": 203.3,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "370995",
+   "name": "RM_ขนมเปี๊ยะไส้ถั่วหวาน40กx90ชนx1",
+   "class": "78",
+   "exVat": 360.0,
+   "inVat": 385.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "374542",
+   "name": "RM_สติ๊กเกอร์คาราเมลเครป300ชx1",
+   "class": "68",
+   "exVat": 150.0,
+   "inVat": 160.5,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "382068",
+   "name": "สติ๊กเกอร์กล้วยหอมนูเทลล่า1500ชน",
+   "class": "68",
+   "exVat": 450.0,
+   "inVat": 481.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "389459",
+   "name": "RM_โดว์มัฟฟินวนิลลา1กกx5ถx1",
+   "class": "68",
+   "exVat": 590.0,
+   "inVat": 631.3,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "393237",
+   "name": "RM_สายคาดโรลรวมรส 300 ชิ้น x1",
+   "class": "68",
+   "exVat": 735.0,
+   "inVat": 786.45,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "399180",
+   "name": "กล่อง6ช่องฝาในตัวMAK03-1 300ชนX1",
+   "class": "68",
+   "exVat": 1257.0,
+   "inVat": 1344.99,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "537212",
+   "name": "เนยขาวโอพีครีม 15กก.*1",
+   "class": "68",
+   "exVat": 1215.0,
+   "inVat": 1300.05,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "602234",
+   "name": "ไชน์โรดชีสฟิลลิ่ง1กก.X12 กล่องX1",
+   "class": "68",
+   "exVat": 2700.0,
+   "inVat": 2889.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "603090",
+   "name": "เอเวิร์ธ สวีสโรลกาแฟ75กX48ชนX2พX1",
+   "class": "68",
+   "exVat": 1539.404,
+   "inVat": 1647.16228,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "603747",
+   "name": "RM_กล่องพาย 4 ชิ้น PA01R 300ชุดX1",
+   "class": "68",
+   "exVat": 1140.0,
+   "inVat": 1219.8,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "633574",
+   "name": "RM_น้ำพริกเผาไทย 1 กก. x 1",
+   "class": "68",
+   "exVat": 185.05,
+   "inVat": 198.0035,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "649807",
+   "name": "ถุงกระดาษคราฟสีขาว 300 ใบ x1",
+   "class": "68",
+   "exVat": 1050.0,
+   "inVat": 1123.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "650348",
+   "name": "RM_เชดด้าชีสชนิดเส้นสีส้ม 1กก.X6",
+   "class": "68",
+   "exVat": 1200.0,
+   "inVat": 1284.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "653692",
+   "name": "RM_บาสก์ชีสเค้ก 500ก.x6ชิ้นx1",
+   "class": "68",
+   "exVat": 1200.0,
+   "inVat": 1284.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "654896",
+   "name": "RM_โดขนมปังหวานแช่แข็ง 50กx120ชx1",
+   "class": "68",
+   "exVat": 586.16,
+   "inVat": 627.1912,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "675077",
+   "name": "กระทงฟอยล์ F-3330 3000 ชิ้น X1",
+   "class": "68",
+   "exVat": 1320.0,
+   "inVat": 1412.4,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2",
+    "S22"
+   ]
+  },
+  {
+   "code": "688547",
+   "name": "โดว์ชิโอะปังแช่แข็ง65ก.x72ชิ้นX1",
+   "class": "68",
+   "exVat": 1193.14,
+   "inVat": 1276.6598000000001,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "689511",
+   "name": "RM_กล่องเครปเค้ก 3ชิ้น 500ชุดX1",
+   "class": "68",
+   "exVat": 2295.0,
+   "inVat": 2455.65,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "697228",
+   "name": "บุชเชอร์ รอยเชอร์เวิร์สท 1000ก.X1",
+   "class": "68",
+   "exVat": 160.0,
+   "inVat": 171.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "699034",
+   "name": "RM_วิปปิ้งครีม 950 มล.X6ชิ้นX1",
+   "class": "68",
+   "exVat": 1260.0,
+   "inVat": 1348.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "709101",
+   "name": "RM_กล่องกลาง  PT1H2A 200 ชุด X 1",
+   "class": "68",
+   "exVat": 1220.0,
+   "inVat": 1305.4,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "719946",
+   "name": "RM_ถาดฟอยล์4428Pสีเงิน 200 ชิ้นX1",
+   "class": "68",
+   "exVat": 1800.0,
+   "inVat": 1926.0,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "726624",
+   "name": "ถาดฟอยล์4575-I(เซ็ตถาด,ฝา)200ชนx1",
+   "class": "68",
+   "exVat": 1400.0,
+   "inVat": 1498.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "738544",
+   "name": "RM_กล่องบาร์สเบิร์นMAK08 120ชุดX1",
+   "class": "68",
+   "exVat": 2514.0,
+   "inVat": 2689.98,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "741756",
+   "name": "อัลมอนด์สไลซ์ 11.34 กก. x 1",
+   "class": "68",
+   "exVat": 3200.0,
+   "inVat": 3424.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "751608",
+   "name": "สติ๊กเกอร์บลูเบอรี่ชีส1500ช.X1",
+   "class": "68",
+   "exVat": 450.0,
+   "inVat": 481.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "752564",
+   "name": "ไส้ไข่เค็มลาวากวน 1 กก. X 1",
+   "class": "68",
+   "exVat": 184.0,
+   "inVat": 196.88,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "757837",
+   "name": "สายคาดหมูหยองคัสตาร์ดไข่เค็ม500ช",
+   "class": "68",
+   "exVat": 405.0,
+   "inVat": 433.35,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "765546",
+   "name": "สายคาดขนมปังใบเตยมะพร้าว 500 ชX 1",
+   "class": "68",
+   "exVat": 705.0,
+   "inVat": 754.35,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "779593",
+   "name": "RM_สติ๊กเกอร์ปังไส้กรอก 300 ชิ้น",
+   "class": "78",
+   "exVat": 300.0,
+   "inVat": 321.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "783191",
+   "name": "RM_สตรอว์เบอร์รี ด็อทส์ 36 ชิ้นx1",
+   "class": "78",
+   "exVat": 845.64,
+   "inVat": 904.8348,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "791442",
+   "name": "ไส้เนื้อเค้กกลิ่นวานิลลา1200ก.x6",
+   "class": "68",
+   "exVat": 1326.46,
+   "inVat": 1419.3122,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "792831",
+   "name": "RM_สายคาดสวิสคอฟฟี่โรล 300ชิ้นX1",
+   "class": "68",
+   "exVat": 600.0,
+   "inVat": 642.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "802109",
+   "name": "ถุงครัวซองต์ 1X1000 ใบ",
+   "class": "68",
+   "exVat": 3020.0,
+   "inVat": 3231.4,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "802110",
+   "name": "ถุงขนมปังฝรั่งเศส 1X1000 ใบ",
+   "class": "68",
+   "exVat": 3000.0,
+   "inVat": 3210.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "802111",
+   "name": "ถุงขนมปังยุโรป 1X1000 ใบ",
+   "class": "68",
+   "exVat": 2920.0,
+   "inVat": 3124.4,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "802837",
+   "name": "ถุงขนมปังซันเบลสโฮลวีท960กX3000ใบ",
+   "class": "68",
+   "exVat": 6450.0,
+   "inVat": 6901.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "802838",
+   "name": "ถุงขนมปังซันเบลสโฮลวีท480กX5000ใบ",
+   "class": "68",
+   "exVat": 9000.0,
+   "inVat": 9630.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "802839",
+   "name": "ถุงขนมปังซันเบลส 960กX3000ใบ",
+   "class": "68",
+   "exVat": 6450.0,
+   "inVat": 6901.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "802840",
+   "name": "ถุงขนมปังซันเบลส 480กX5000ใบ",
+   "class": "68",
+   "exVat": 9000.0,
+   "inVat": 9630.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "815050",
+   "name": "เอโร่ทาร์ตไข่เหลว FZ 850X1",
+   "class": "68",
+   "exVat": 107.0,
+   "inVat": 114.49,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2",
+    "S22"
+   ]
+  },
+  {
+   "code": "817220",
+   "name": "โดนัทวงแหวนแช่แข็ง40กX80",
+   "class": "68",
+   "exVat": 400.0,
+   "inVat": 428.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "817221",
+   "name": "โดนัทเกลียวแช่แข็ง40กX90",
+   "class": "68",
+   "exVat": 450.0,
+   "inVat": 481.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "818483",
+   "name": "ฟอนเทียร่านมผงเต็มไขมัน 25กก",
+   "class": "68",
+   "exVat": 4430.0,
+   "inVat": 4740.1,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "820892",
+   "name": "กล้วยหอมแช่แข็ง5กกX2ถุง",
+   "class": "68",
+   "exVat": 360.0,
+   "inVat": 385.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "821642",
+   "name": "ดาร์คช็อคคูเวอเจอร์ 57.7% 2.5 กก.",
+   "class": "68",
+   "exVat": 843.75,
+   "inVat": 902.8125,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "823075",
+   "name": "เค้กโรลรวมรส 30กรัมX42",
+   "class": "68",
+   "exVat": 257.34,
+   "inVat": 275.3538,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "823099",
+   "name": "อลาวรี่ซอล์ทเต็ดบัตเตอร์เบลนด์5กก",
+   "class": "68",
+   "exVat": 789.23,
+   "inVat": 844.4761,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "825296",
+   "name": "แฟนซีคาร์ฟ แบะแซกลูโคสไซรัป 1 กก.",
+   "class": "-",
+   "exVat": 33.0,
+   "inVat": 35.31,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "833556",
+   "name": "แป้งขนมปัง CJ22.5กก.X1กระสอบ",
+   "class": "68",
+   "exVat": 630.5,
+   "inVat": 674.635,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "833557",
+   "name": "แป้งเค้กCJ22.5กก.X1กระสอบ",
+   "class": "68",
+   "exVat": 747.0,
+   "inVat": 799.29,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "833558",
+   "name": "แป้งอเนกประสงค์CJ22.5กก.X1กระสอบ",
+   "class": "68",
+   "exVat": 598.5,
+   "inVat": 640.395,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "835371",
+   "name": "อินโนว่าครัวซองต์โฮลวีท48กX90ชิ้น",
+   "class": "68",
+   "exVat": 866.7,
+   "inVat": 927.369,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "836096",
+   "name": "เอส500 อัลตร้า1กกX 1 ถุง",
+   "class": "68",
+   "exVat": 137.5,
+   "inVat": 147.125,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "837805",
+   "name": "INNOแผ่นแป้งPZหวานแช่แข็ง100กX40ช",
+   "class": "68",
+   "exVat": 415.6,
+   "inVat": 444.692,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "839465",
+   "name": "ถาดฟอยล์#4573(รวมตัว+ฝา)1X600ชิ้น",
+   "class": "68",
+   "exVat": 3600.0,
+   "inVat": 3852.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "841172",
+   "name": "เนยขาวทอดโดนัท15 กก.(KV)ยกลัง",
+   "class": "68",
+   "exVat": 960.0,
+   "inVat": 1027.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "844642",
+   "name": "สมอลเซียบัตต้า(ขนมปัง)40กX108ชิ้น",
+   "class": "68",
+   "exVat": 480.0,
+   "inVat": 513.6,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "844643",
+   "name": "สมอลฟาร์มเมอร์โรล40กX120ชิ้น",
+   "class": "68",
+   "exVat": 533.0,
+   "inVat": 570.31,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "844644",
+   "name": "ขนมปังฝรั่งเศสขนาดเล็ก40กX120ชิ้น",
+   "class": "68",
+   "exVat": 528.0,
+   "inVat": 564.96,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "844645",
+   "name": "มัลติเกรนเบรดขนมปังธัญพืช350กX12ช",
+   "class": "68",
+   "exVat": 666.0,
+   "inVat": 712.62,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "844646",
+   "name": "เซียบัตต้าแซนด์วิช110กX40ชิ้น",
+   "class": "68",
+   "exVat": 500.0,
+   "inVat": 535.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "844776",
+   "name": "ขนมปังหวาน40กรัมX144ชิ้น",
+   "class": "68",
+   "exVat": 432.0,
+   "inVat": 462.24,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "846014",
+   "name": "เบรคฟาสต์ซอสเซจ5.5นิ้ว1KG X10",
+   "class": "68",
+   "exVat": 1170.0,
+   "inVat": 1251.9,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "847816",
+   "name": "เค้กโรลรวมใบเตยเผือกกาแฟ30กX42ชน",
+   "class": "68",
+   "exVat": 245.37,
+   "inVat": 262.5459,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "850108",
+   "name": "วนิลาเอแคลร์ฟิลลิ่ง 1 กก X 1 ถุง",
+   "class": "68",
+   "exVat": 85.0,
+   "inVat": 90.95,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "852624",
+   "name": "น้ำตาลทรายขาวบริสุทธิ์KBS 25กก.X1",
+   "class": "68",
+   "exVat": 602.6,
+   "inVat": 644.782,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "855219",
+   "name": "มินิเค้กแฟนซีช็อกกานาช35กX48ชน.",
+   "class": "68",
+   "exVat": 365.47,
+   "inVat": 391.0529,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "855221",
+   "name": "มินิเค้กคอฟฟี่คาราเมลอัลมอน30กX48",
+   "class": "68",
+   "exVat": 365.47,
+   "inVat": 391.0529,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "855223",
+   "name": "มินิเค้กแฟนซีแยมการ์ตูน30กX48ชน.",
+   "class": "68",
+   "exVat": 333.87,
+   "inVat": 357.2409,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "858626",
+   "name": "มอสซาเรล่าชีสเส้น 1 กกX 6",
+   "class": "68",
+   "exVat": 1519.5,
+   "inVat": 1625.865,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "859995",
+   "name": "ยีสต์ผงบรักกี้มาน(ฟ้า) 500 ก. X20",
+   "class": "68",
+   "exVat": 1575.0,
+   "inVat": 1685.25,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "859997",
+   "name": "กระทงกระดาษขาว NO3219A 1X16000ชน",
+   "class": "68",
+   "exVat": 1120.0,
+   "inVat": 1198.4,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "860309",
+   "name": "โคฟเวอร์สตอร์เบอรี่โค้ตติ้ง1กกX10",
+   "class": "68",
+   "exVat": 1445.0,
+   "inVat": 1546.15,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "860310",
+   "name": "โคฟเวอร์ลักซ์ ดาร์ค 1 กก X 10",
+   "class": "68",
+   "exVat": 1815.0,
+   "inVat": 1942.05,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "860322",
+   "name": "ครัวซองต์แฮมชีสแช่แข็ง 75กX105 ช",
+   "class": "68",
+   "exVat": 1942.5,
+   "inVat": 2078.475,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "860323",
+   "name": "ขนมปังสังขยา 80ก 12 ชิ้น X 6 ถุง",
+   "class": "68",
+   "exVat": 950.0,
+   "inVat": 1016.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "860325",
+   "name": "ขนมปังเบคอนผักโขม 60ก 12ช X 6ถุง",
+   "class": "68",
+   "exVat": 1250.0,
+   "inVat": 1337.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "860326",
+   "name": "ขนมปังหวานแช่แข็ง 60กรัม X 90ชิ้น",
+   "class": "68",
+   "exVat": 395.1,
+   "inVat": 422.757,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "860328",
+   "name": "โดจ์พายสังขยามะพร้าวอ่อน 85กX40ชน",
+   "class": "68",
+   "exVat": 434.29,
+   "inVat": 464.69030000000004,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "860357",
+   "name": "เดนิชม้วน (โดแช่แข็ง)50กX120ชิ้น",
+   "class": "68",
+   "exVat": 726.67,
+   "inVat": 777.5369,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "868629",
+   "name": "กระทงฟอยส์สีเงิน 500 X 6 แพ็ค",
+   "class": "68",
+   "exVat": 1059.0,
+   "inVat": 1133.13,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "868630",
+   "name": "ไส้กรอกไก่หนังกรอบBKP1000กX1",
+   "class": "68",
+   "exVat": 130.0,
+   "inVat": 139.1,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "871971",
+   "name": "กล่องทาร์ต 2 ช่อง MAK32 300ชุด X1",
+   "class": "68",
+   "exVat": 984.0,
+   "inVat": 1052.88,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "873898",
+   "name": "RM_โดซอฟท์โรลแช่แข็ง30ก.x225ชนx1",
+   "class": "68",
+   "exVat": 551.25,
+   "inVat": 589.8375,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "875862",
+   "name": "RM_กล่องเค้กโรล 8 ชิ้น 200ชุดX1",
+   "class": "68",
+   "exVat": 1662.0,
+   "inVat": 1778.34,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "880861",
+   "name": "โดนัทกลมแช่แข็ง 30 ก.X180ชิ้นX1",
+   "class": "68",
+   "exVat": 693.0,
+   "inVat": 741.51,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "891040",
+   "name": "ไส้กรอกไก่เวียนนา1000ก(50ชิ้น)",
+   "class": "68",
+   "exVat": 95.0,
+   "inVat": 101.65,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "891374",
+   "name": "เดนิชเบรดช็อคโกแลตFZ360ก 10ชX2ถุง",
+   "class": "68",
+   "exVat": 868.57,
+   "inVat": 929.3699,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "893883",
+   "name": "ครัวซองต์เนยสดแช่แข็ง70กX60ช",
+   "class": "68",
+   "exVat": 1629.93,
+   "inVat": 1744.0251,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "896681",
+   "name": "ถาดฟอยล์#3416-P(รวมตัว+ฝา)1X200ชน",
+   "class": "68",
+   "exVat": 1600.0,
+   "inVat": 1712.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "900023",
+   "name": "อีซี่ ซอฟท์ เมลติ้ง 10 กก. X 1ถุง",
+   "class": "68",
+   "exVat": 2096.0,
+   "inVat": 2242.7200000000003,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "900823",
+   "name": "เทรดดิชั่นนอลเฟรนช์บาแก็ต 280กX30",
+   "class": "68",
+   "exVat": 1071.0,
+   "inVat": 1145.97,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "900825",
+   "name": "ซาวโดวจ์ มัลติเกรน เบรด 340 กX 30",
+   "class": "68",
+   "exVat": 1590.0,
+   "inVat": 1701.3,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "900829",
+   "name": "เบเกิ้ล 70 ก X 60 ชิ้น",
+   "class": "68",
+   "exVat": 840.0,
+   "inVat": 898.8,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "900830",
+   "name": "อิงลิช มัฟฟิน 70 ก X 60 ชิ้น",
+   "class": "68",
+   "exVat": 840.0,
+   "inVat": 898.8,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "900831",
+   "name": "เพน ทาดิชั่น 340กX 30",
+   "class": "68",
+   "exVat": 1224.0,
+   "inVat": 1309.68,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "901013",
+   "name": "สโนว์ไลน์ เอส 11 1 กกX2ถุง",
+   "class": "68",
+   "exVat": 280.0,
+   "inVat": 299.6,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "905775",
+   "name": "แผ่นOPPรองถาดขนม400X450มม.1000ใบ",
+   "class": "68",
+   "exVat": 3000.0,
+   "inVat": 3210.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "905783",
+   "name": "แผ่นครัวซองต์สี่เหลี่ยมFZ1000กX10",
+   "class": "68",
+   "exVat": 3550.0,
+   "inVat": 3798.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "905797",
+   "name": "เลอแกลเนยแล็คติกชนิดจืด 10กกX1",
+   "class": "68",
+   "exVat": 5267.6,
+   "inVat": 5636.332,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "905800",
+   "name": "อิมพีเรียลพามีซานชีสผง1.5กกX6",
+   "class": "68",
+   "exVat": 5166.3,
+   "inVat": 5527.941,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "905802",
+   "name": "อลาวรี่มิกซ์โฟรชีส 1 กกX6",
+   "class": "68",
+   "exVat": 1185.21,
+   "inVat": 1268.1747,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "907335",
+   "name": "คาราเมลซอส FZ 1 กก. X 5 ถุง",
+   "class": "68",
+   "exVat": 1250.0,
+   "inVat": 1337.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "911979",
+   "name": "โดจ์เดนิชไก่หยองก้นหอย45*100",
+   "class": "68",
+   "exVat": 577.14,
+   "inVat": 540.35,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "911980",
+   "name": "เดนิชไส้กรอกมือเสือแช่แข็ง48*75",
+   "class": "68",
+   "exVat": 617.14,
+   "inVat": 577.8,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "912740",
+   "name": "ขนมปังเนยกระเทียมครีมชีสFZ 36PCS",
+   "class": "68",
+   "exVat": 930.0,
+   "inVat": 995.1,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "912758",
+   "name": "แผ่นครัวซองตเนยสดแช่แข็ง10X20นิ้ว",
+   "class": "68",
+   "exVat": 2116.0,
+   "inVat": 2264.12,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "915055",
+   "name": "ลาฟรุ้ตต้าบลูเบอร์รี 6กก.X1",
+   "class": "68",
+   "exVat": 1390.0,
+   "inVat": 1487.3,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "916269",
+   "name": "โคลเจลลี่ 7 กิโลกรัม",
+   "class": "68",
+   "exVat": 805.0,
+   "inVat": 861.35,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "916865",
+   "name": "พายเผือก 85X50 ชิ้น",
+   "class": "68",
+   "exVat": 770.0,
+   "inVat": 823.9,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "916866",
+   "name": "พายไก่ซอสขาว 85X50 ชิ้น",
+   "class": "68",
+   "exVat": 770.0,
+   "inVat": 823.9,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "916867",
+   "name": "พายหมูแดง 85X50 ชิ้น",
+   "class": "68",
+   "exVat": 882.5,
+   "inVat": 944.275,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "916924",
+   "name": "ถุงกระดาษคราฟสีน้ำตาล 6X50PCS",
+   "class": "68",
+   "exVat": 1584.0,
+   "inVat": 1694.88,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "918747",
+   "name": "ฮอกไกโดมิลค์ฟิลลิ่ง 1 กกX10ถุง",
+   "class": "68",
+   "exVat": 1013.0,
+   "inVat": 1083.91,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "918748",
+   "name": "โดจ์ครัวซองต์เนยสดแช่แข็ง20กX200ช",
+   "class": "68",
+   "exVat": 868.57,
+   "inVat": 929.3699,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "919754",
+   "name": "หมูหยองเบเกอรี่(หมูไก่) 1กก.x5",
+   "class": "68",
+   "exVat": 600.0,
+   "inVat": 642.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "919757",
+   "name": "กล่อง 9 ช่อง 100ชิ้นx1",
+   "class": "68",
+   "exVat": 386.0,
+   "inVat": 413.02,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "920292",
+   "name": "แผ่นแป้งสามเหลี่ยม FZ 30 กX240ช",
+   "class": "68",
+   "exVat": 1976.0,
+   "inVat": 2114.32,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "921129",
+   "name": "กล่องขนมปัง 4 ชิ้น 100 X1",
+   "class": "68",
+   "exVat": 620.0,
+   "inVat": 663.4,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "921130",
+   "name": "กล่องคุกกี้ 5 ชิ้น 200ชิ้นx1",
+   "class": "68",
+   "exVat": 556.0,
+   "inVat": 594.92,
+   "source": "S2",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S2"
+   ]
+  },
+  {
+   "code": "922115",
+   "name": "เชดด้าชีส81สไลซ์Naked 1กกX1แพ็ค",
+   "class": "68",
+   "exVat": 324.8,
+   "inVat": 347.536,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "922117",
+   "name": "โดจ์ครัวซองต์เนยสดแช่แข็ง50กX100ช",
+   "class": "68",
+   "exVat": 1005.71,
+   "inVat": 1076.1097,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "922164",
+   "name": "ถุงขนมปังARO GOLD9.5\"X17.5\"1500ใบ",
+   "class": "68",
+   "exVat": 1182.0,
+   "inVat": 1264.74,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "922252",
+   "name": "ถาด6ช่องเล็ก PS ดำ+ฝาPET250PCS X1",
+   "class": "68",
+   "exVat": 530.0,
+   "inVat": 567.1,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "922289",
+   "name": "ถุงIPP ARO GOLD 5.5\"x14.5\"x1000x1",
+   "class": "68",
+   "exVat": 1270.0,
+   "inVat": 1358.9,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "922290",
+   "name": "ถุงIPPA ARO GOLD8.5\"x12.5\"x1000x1",
+   "class": "68",
+   "exVat": 1230.0,
+   "inVat": 1316.1,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "922291",
+   "name": "ถุง IPPA ARO GOLD 9\"x15.5\"x1000x1",
+   "class": "68",
+   "exVat": 1340.0,
+   "inVat": 1433.8,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "923479",
+   "name": "ถั่วแดงกวนบดหยาบสำหรับโอฮากิ1x10",
+   "class": "68",
+   "exVat": 700.0,
+   "inVat": 749.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "923480",
+   "name": "ไส้ขนมรสวนิลา x 10",
+   "class": "68",
+   "exVat": 1400.0,
+   "inVat": 1498.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "923688",
+   "name": "ขนมปังโฮลวีทแช่แข็ง 720กX 15",
+   "class": "68",
+   "exVat": 1350.0,
+   "inVat": 1444.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "923689",
+   "name": "ขนมปังซาวโดว์ดาร์กไรย์ 340กX 30",
+   "class": "68",
+   "exVat": 1650.0,
+   "inVat": 1765.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "923690",
+   "name": "ขนมปังเซียบัตต้า 110กX 60",
+   "class": "68",
+   "exVat": 780.0,
+   "inVat": 834.6,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "923691",
+   "name": "ขนมปังวอลนัทแช่แข็ง 330กX 30",
+   "class": "68",
+   "exVat": 2100.0,
+   "inVat": 2247.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "923745",
+   "name": "ARO เนื้อปูเทียม 1กกx10",
+   "class": "68",
+   "exVat": 1110.0,
+   "inVat": 1187.7,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "923858",
+   "name": "สีผสมอาหารเบสโอเดอแดงสตรอ450มล",
+   "class": "68",
+   "exVat": 89.58,
+   "inVat": 95.8506,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "923862",
+   "name": "สารกันเชื้อราเบสท์โอเดอร์500ก.X1",
+   "class": "68",
+   "exVat": 72.83,
+   "inVat": 77.9281,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "923863",
+   "name": "กลิ่นมะลิ เบสท์โอเดอร์ 450 มล.",
+   "class": "68",
+   "exVat": 89.58,
+   "inVat": 95.8506,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "923864",
+   "name": "กล่องใหญ่พรีเมียม X 50 ใบ",
+   "class": "68",
+   "exVat": 997.0,
+   "inVat": 1066.79,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "924802",
+   "name": "ซอสมะเขือเทศเอโร่ 1กก.x12",
+   "class": "68",
+   "exVat": 260.4,
+   "inVat": 278.628,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "925386",
+   "name": "กล่องเบเกอรี่H6ฝาล็อคX1000ชิ้นX1",
+   "class": "68",
+   "exVat": 1520.0,
+   "inVat": 1626.4,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "925510",
+   "name": "มินิเค้กช็อกโกแลต 15 กx 45ช x1",
+   "class": "68",
+   "exVat": 229.5,
+   "inVat": 245.565,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "925511",
+   "name": "มินิเค้กรสวานิลลา 15 ก X 45ช x1",
+   "class": "68",
+   "exVat": 229.5,
+   "inVat": 245.565,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "925513",
+   "name": "ช็อกโกแลตเฮเซลนัทฟิลลิ่ง1กกx10x1",
+   "class": "68",
+   "exVat": 1924.1,
+   "inVat": 2058.787,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "925514",
+   "name": "เนยเทียม ตราแซมซั่นโกลด์ 15 กกx1",
+   "class": "68",
+   "exVat": 885.0,
+   "inVat": 946.95,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "925515",
+   "name": "สติ๊กเกอร์ AROสายคาดแดง3000ชน X1",
+   "class": "68",
+   "exVat": 2040.0,
+   "inVat": 2182.8,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "926716",
+   "name": "โบนัส น้ำมันพืช 1ล.  X 12(ยกลัง)",
+   "class": "68",
+   "exVat": 546.73,
+   "inVat": 585.0011000000001,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "927095",
+   "name": "ปูอัดเส้นแช่แข็ง 1 กก.X 10ถุง X 1",
+   "class": "68",
+   "exVat": 1110.0,
+   "inVat": 1187.7,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "927098",
+   "name": "สติ๊กเกอร์ครัวซองต์3000ช X 1",
+   "class": "68",
+   "exVat": 450.0,
+   "inVat": 481.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "927368",
+   "name": "โอวาเล็ต 5 กก. X1",
+   "class": "68",
+   "exVat": 825.0,
+   "inVat": 882.75,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "927369",
+   "name": "กล่องมัฟฟิ่น  MAK92 150 ชุด X 1",
+   "class": "68",
+   "exVat": 652.5,
+   "inVat": 698.175,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "927370",
+   "name": "กล่องเบเกอรี่  MAK54 200 ชุด X 1",
+   "class": "68",
+   "exVat": 712.0,
+   "inVat": 761.84,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "927461",
+   "name": "ชาไทยฟิลลิ่ง 1 กก. X 10",
+   "class": "68",
+   "exVat": 1116.5,
+   "inVat": 1194.655,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "928469",
+   "name": "กล่องเค้กโรล  PT1H2C 150 ชุด X 1",
+   "class": "68",
+   "exVat": 613.5,
+   "inVat": 656.445,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "929669",
+   "name": "แป็งซุยช็อกโกแลตแช่แข็ง70กX80ชX1",
+   "class": "68",
+   "exVat": 1440.0,
+   "inVat": 1540.8,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "929670",
+   "name": "FZมินิครัวซองต์โฮลวีท 20ก.x200ชX1",
+   "class": "68",
+   "exVat": 868.57,
+   "inVat": 929.3699,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "929671",
+   "name": "เดนิชไส้กรอกไก่แช่แข็ง130กX40ชX1",
+   "class": "68",
+   "exVat": null,
+   "inVat": null,
+   "source": null,
+   "status": "CONFLICT_UNRESOLVED",
+   "sheetsSeen": [
+    "S2",
+    "S22"
+   ]
+  },
+  {
+   "code": "930223",
+   "name": "FZมินิพายสตรอเบอรี 25ก.X240ชX1",
+   "class": "68",
+   "exVat": 1028.57,
+   "inVat": 1100.5699,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "930225",
+   "name": "FZมินิพายแยมสับปะรด 25 ก.X240ชX1",
+   "class": "68",
+   "exVat": 1028.57,
+   "inVat": 1100.5699,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "930789",
+   "name": "กระดาษตัด 16X10 cm 500แผ่น X6แพ็ค",
+   "class": "68",
+   "exVat": 390.0,
+   "inVat": 417.3,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "932630",
+   "name": "สติ๊กเกอร์เค้กกล้วยหอม1500ช.X1",
+   "class": "68",
+   "exVat": 450.0,
+   "inVat": 481.5,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "933174",
+   "name": "ขนมปังฟอคคาเชียมะกอกดำ 100กX30ชX1",
+   "class": "68",
+   "exVat": 660.0,
+   "inVat": 706.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "933175",
+   "name": "ขนมปังฟอคคาเชีย 100 กX30 ชิ้นX 1",
+   "class": "68",
+   "exVat": 480.0,
+   "inVat": 513.6,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "933176",
+   "name": "ขนมปังดาร์กไรย์มอลต์ 300 กX30ชX1",
+   "class": "68",
+   "exVat": 1020.0,
+   "inVat": 1091.4,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "933177",
+   "name": "ขนมปังธัญพืช 300 ก.X30ช.X1",
+   "class": "68",
+   "exVat": 960.0,
+   "inVat": 1027.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "933178",
+   "name": "พายผีเสื้อเนยสดเเช่เเข็ง60กX80ชX1",
+   "class": "68",
+   "exVat": 1600.0,
+   "inVat": 1712.0,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S22"
+   ]
+  },
+  {
+   "code": "933179",
+   "name": "แดรีโกลด์พาร์มีซานชีสชนิดผง500กX1",
+   "class": "68",
+   "exVat": 309.58,
+   "inVat": 331.25059999999996,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "942238",
+   "name": "RM_ขนมปังบริยอชแช่แข็ง135ก.x24ชx1",
+   "class": "68",
+   "exVat": 672.0,
+   "inVat": 719.04,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "957820",
+   "name": "หมูหยองหมูผสมไก่ตราเจ้าสัว1000ก.",
+   "class": "68",
+   "exVat": 360.0,
+   "inVat": 385.2,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "961827",
+   "name": "RM_ไตรคัลเลอร์ ด็อทส์ 36 ชิ้น x 1",
+   "class": "78",
+   "exVat": 898.2,
+   "inVat": 961.0740000000001,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2"
+   ]
+  },
+  {
+   "code": "971186",
+   "name": "อิมพีเรียลโพรเซสเชดด้าชีสขูดเส้น",
+   "class": "68",
+   "exVat": 2100.0,
+   "inVat": 2247.0,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "973469",
+   "name": "RM_โดขนมปังหวานแช่แข็ง60กX100ชนX1",
+   "class": "68",
+   "exVat": 578.74,
+   "inVat": 619.2518,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "974289",
+   "name": "เนื้อมะพร้าวแช่แข็งแบบเส้น1กก.X1",
+   "class": "68",
+   "exVat": 98.7,
+   "inVat": 105.60900000000001,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK"
+   ]
+  },
+  {
+   "code": "979061",
+   "name": "สายคาดปังไส้กรอกซอสซัมยัง1000ช",
+   "class": "68",
+   "exVat": 760.0,
+   "inVat": 813.2,
+   "source": "S22",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "S22"
+   ]
+  },
+  {
+   "code": "982069",
+   "name": "โอคุนทาร์ตรูปดอกไม้30กX20ชX1พค",
+   "class": "68",
+   "exVat": 140.0,
+   "inVat": 149.8,
+   "source": "FBK",
+   "status": "PRICED",
+   "sheetsSeen": [
+    "FBK",
+    "S2",
+    "S22"
+   ]
+  }
+ ],
+ "storeCostOnly": [
+  {
+   "code": "1950",
+   "name": "นมสดเมจิรสจืด 2000มล..X1",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "80652",
+   "name": "ไข่ไก่เบอร์ 2 มีฝา 30 ฟอง",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "101497",
+   "name": "CP แฟรงเฟริต์ไก่ 500 ก.",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "106732",
+   "name": "พลาสเลย์ตรามือ 50กรัมX1",
+   "files": [
+    "S2",
+    "S22"
+   ]
+  },
+  {
+   "code": "106818",
+   "name": "พริกไทยเกล็ดดำตรามือ 1กก.X1",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "106971",
+   "name": "เกลือปรุงทิพย์ 1 กก.",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "109830",
+   "name": "คนอร์ พิซซ่าซอส 1000ก.X1",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "116018",
+   "name": "แม็กกาแรตสับปะรดแว่น565กX3",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "121586",
+   "name": "เซพแพ็คสวีทเบเกอรีมายองเนส1000กX1",
+   "files": [
+    "S2",
+    "S22"
+   ]
+  },
+  {
+   "code": "131222",
+   "name": "ฟิลาเดลเฟียครีมชีส 250 กรัม",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "134447",
+   "name": "เอโร่ สลัดครีม 1 กก.",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "134544",
+   "name": "เอโร่ มายองเนส 1 กก.",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "140355",
+   "name": "เฟร้นซ์ สไปซี่มัสตาร์ด 340กรัมX1",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "172748",
+   "name": "แองเคอร์วิปปิ้งครีม 1 ลิตร",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "174476",
+   "name": "แม่ประนอม น้ำพริกเผา513กX2",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "184136",
+   "name": "สวีทเบเกอรีมายองเนส BF 870ก.",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "198368",
+   "name": "ARO ไข่ไก่ เบอร์ 2 มีฝา 30 ฟอง",
+   "files": [
+    "S2",
+    "S22"
+   ]
+  },
+  {
+   "code": "202955",
+   "name": "ลิน น้ำตาลไอซิ่ง 900 กรัม X 1 ชิ้น",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "202995",
+   "name": "ลิน น้ำตาลไอซิ่ง900กรัม*1",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "206889",
+   "name": "AROแป้งข้าวโพด 1000ก*1",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "234931",
+   "name": "เนยอลาวรี่ 227 กรัม",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "468182",
+   "name": "เซลารี่ (RPF) กก.ละ",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "668317",
+   "name": "เอโร่เกลือเสริมไอโอดีน 5กก.X1ถุง",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "800659",
+   "name": "ฟอลคอน นมข้นจืด 1000มล.X12",
+   "files": [
+    "S2",
+    "S22"
+   ]
+  },
+  {
+   "code": "803955",
+   "name": "อัลมอนด์สไลด์ 11.34 KG",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "805241",
+   "name": "ไวท์เบอร์เกอร์สไลด์โพรเซสชีสX1",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "818279",
+   "name": "แครนเบอร์รี่แห้ง(เอโร่)1X1000ก.",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "818286",
+   "name": "แมคคาดาเมียร์ ARO 500 กรัม",
+   "files": [
+    "S2",
+    "S22"
+   ]
+  },
+  {
+   "code": "818287",
+   "name": "วอลนัท (ตราเอโร่) 1X1000 กรัม",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "819965",
+   "name": "อัลมอนด์ผง (ตราเอโร่) 1X500 กรัม",
+   "files": [
+    "S2",
+    "S22"
+   ]
+  },
+  {
+   "code": "830334",
+   "name": "งาดำ 500 กรัม",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "830335",
+   "name": "งาขาว 500 กรัม",
+   "files": [
+    "S2",
+    "S22"
+   ]
+  },
+  {
+   "code": "831416",
+   "name": "CP ไข่แดงเค็มดิบ 25 ฟอง",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "833762",
+   "name": "นูเทลล่า เฮเซลนัทสเปรด 3กก.X1",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "851335",
+   "name": "เอโร่ข้าวโพดหวานแช่แข็ง 1กก",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "852367",
+   "name": "คิวพี มายองเนสศรีราชา 900 ก.",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "859876",
+   "name": "นมข้นจืดตราคาเนชั่น 405 กรัม X 1",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "859952",
+   "name": "น้ำตาลเบเกอรี่ ตราลิน 1 กก.X1",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "864201",
+   "name": "ตราเอโร่ น้ำส้มสายชูฯ 5% 4500มลX1",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "898808",
+   "name": "เอโร่ สาหร่ายตัดเส้น 100ก.X1",
+   "files": [
+    "S22"
+   ]
+  },
+  {
+   "code": "923317",
+   "name": "มะนาวเหลืองแพ็ค 4 ลูก",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "928402",
+   "name": "น้ำตาลโดนัท 2 กก. X 1",
+   "files": [
+    "S2"
+   ]
+  },
+  {
+   "code": "932063",
+   "name": "ซัมยังบูลดักฮอตซอสออริจินอล2กก.X1",
+   "files": [
+    "S22"
+   ]
+  }
+ ],
+ "conflicts": [
+  {
+   "code": "111418",
+   "name": "พายกะหรี่ไก่90กรัม*50ชิ้น",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 609.5
+   },
+   "overruled": {
+    "S22": 557.0
+   }
+  },
+  {
+   "code": "111419",
+   "name": "พายสับปะรด85กรัมX50ชิ้น",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 609.5
+   },
+   "overruled": {
+    "S22": 557.0
+   }
+  },
+  {
+   "code": "125789",
+   "name": "เบคอนคลาสสิค1กก.*4",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 1084.0
+   },
+   "overruled": {
+    "S22": 1060.0
+   }
+  },
+  {
+   "code": "125892",
+   "name": "แฮมหมูคลาสสิค1กก.*4",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 728.0
+   },
+   "overruled": {
+    "S22": 704.0
+   }
+  },
+  {
+   "code": "141305",
+   "name": "พายทูน่า85ก.*50 ชิ้น",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 624.34
+   },
+   "overruled": {
+    "S22": 571.0
+   }
+  },
+  {
+   "code": "162408",
+   "name": "เดนิชแผ่น10'X20\"(20แผ่น)",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 1490.0
+   },
+   "overruled": {
+    "S22": 1340.0
+   }
+  },
+  {
+   "code": "163385",
+   "name": "ชอคโกแลตชิพสติ๊ก45ก.*100",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 594.29
+   },
+   "overruled": {
+    "S22": 520.0
+   }
+  },
+  {
+   "code": "165463",
+   "name": "ครัวซองต์เนยสด50 ก.X180ชิ้น",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 1836.0
+   },
+   "overruled": {
+    "S22": 1656.0
+   }
+  },
+  {
+   "code": "213860",
+   "name": "เอโร่เปลือกทาร์ตFZ18ชนX16",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 728.4768
+   },
+   "overruled": {
+    "S22": 837.0504
+   }
+  },
+  {
+   "code": "213966",
+   "name": "เอโร่เปลือกทาร์ตFZ18ชิ้น",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 45.6954
+   },
+   "overruled": {
+    "S22": 52.3022
+   }
+  },
+  {
+   "code": "823075",
+   "name": "เค้กโรลรวมรส 30กรัมX42",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 257.34
+   },
+   "overruled": {
+    "S22": 245.37
+   }
+  },
+  {
+   "code": "823099",
+   "name": "อลาวรี่ซอล์ทเต็ดบัตเตอร์เบลนด์5กก",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 789.23
+   },
+   "overruled": {
+    "S22": 805.34
+   }
+  },
+  {
+   "code": "846014",
+   "name": "เบรคฟาสต์ซอสเซจ5.5นิ้ว1KG X10",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 1170.0
+   },
+   "overruled": {
+    "S22": 1160.0
+   }
+  },
+  {
+   "code": "891374",
+   "name": "เดนิชเบรดช็อคโกแลตFZ360ก 10ชX2ถุง",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 868.57
+   },
+   "overruled": {
+    "S22": 760.0
+   }
+  },
+  {
+   "code": "893883",
+   "name": "ครัวซองต์เนยสดแช่แข็ง70กX60ช",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 1629.93
+   },
+   "overruled": {
+    "S22": 1491.78
+   }
+  },
+  {
+   "code": "929671",
+   "name": "เดนิชไส้กรอกไก่แช่แข็ง130กX40ชX1",
+   "kind": "STORE_FILES_DISAGREE",
+   "prices": {
+    "S22": 1200.0,
+    "S2": 1417.14
+   }
+  },
+  {
+   "code": "933178",
+   "name": "พายผีเสื้อเนยสดเเช่เเข็ง60กX80ชX1",
+   "kind": "FBK_WINS",
+   "used": {
+    "FBK": 1600.0
+   },
+   "overruled": {
+    "S22": 1400.0
+   }
+  }
+ ],
+ "fbkOverridesStoreDash": [
+  {
+   "code": "182866",
+   "name": "เบคกิ้งโซดาตราเบสท์โอเดอร์500ก*1",
+   "file": "S2",
+   "fbkExVat": 26.0,
+   "note": "store file says 'use store retail cost'; main FBK price used"
+  },
+  {
+   "code": "183153",
+   "name": "ทิวลิปดาร์คชอคโกแลตชิพกลาง550กX2",
+   "file": "S2",
+   "fbkExVat": 227.8,
+   "note": "store file says 'use store retail cost'; main FBK price used"
+  },
+  {
+   "code": "204345",
+   "name": "BF ผงฟู สูตรดับเบิลแอ็คติง 1 กก.",
+   "file": "S2",
+   "fbkExVat": 106.74,
+   "note": "store file says 'use store retail cost'; main FBK price used"
+  }
+ ],
+ "vatInconsistent": [
+  {
+   "file": "FBK",
+   "code": "911979",
+   "name": "โดจ์เดนิชไก่หยองก้นหอย45*100",
+   "exVat": 577.14,
+   "inVat": 540.35,
+   "note": "IN VAT column is not EX x 1.07 - EX VAT column is what is imported"
+  },
+  {
+   "file": "FBK",
+   "code": "911980",
+   "name": "เดนิชไส้กรอกมือเสือแช่แข็ง48*75",
+   "exVat": 617.14,
+   "inVat": 577.8,
+   "note": "IN VAT column is not EX x 1.07 - EX VAT column is what is imported"
+  }
+ ]
+}

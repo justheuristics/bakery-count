@@ -2783,6 +2783,8 @@ function buildManageItemsView(C) {
           <button class="btn btn-secondary btn-sm" onclick="showMasterCostMigrationModal()">📥 ย้ายราคาจาก master_cost.json</button>
           <button class="btn btn-secondary btn-sm" onclick="showBasisBackfillModal()">🏷️ ตั้งฐาน VAT ย้อนหลัง (T8a)</button>
           <button class="btn btn-blue btn-sm" onclick="showAugustPriceImportModal()">📥 นำเข้าราคา ส.ค. 69 (T8a)</button>
+          <button class="btn btn-blue btn-sm" onclick="showSeptemberPriceImportModal()">📥 นำเข้าราคา ก.ย. 69 (ขั้น 1)</button>
+          <button class="btn btn-blue btn-sm" onclick="showSeptemberEntryRepriceModal()">🔁 ปรับราคาที่ตรึงใน ก.ย. (ขั้น 2)</button>
           <button class="btn btn-secondary btn-sm" onclick="renderManageItems()">🔄 รีเฟรช</button>
         </div>
       </div>
@@ -3392,6 +3394,441 @@ async function doAugustPriceImport(){
     sourceSha256: preview.sourceSha256
   });
   window.__t8a_august_preview = null;
+}
+
+/* ════════════════════════════════════════════
+   [September 2026] Code 206 price import — TWO separate writes, each previewed and
+   confirmed on its own (guardrail 9):
+     (A) masterData/items  — price / priceUom / priceBasis / priceEffectiveFrom / priceSource
+     (B) entries/{store}/2026-09/{code} — ONLY price_at_count + priceBasis_at_count
+   Source: docs/price_import_2026-09.json (tools/extract_price_import_2026-09.py), the three
+   September workbooks. EX VAT only; main FBK price wins; a store-file price is used only for
+   a code FBK doesn't price. Items that are not live in the app (no master_uom.json
+   conversion) are skipped, never added here. Rows saying "use store retail cost" carry no
+   price and are never written as one.
+
+   (B) is the one deliberate exception to T11's "stamped once, never re-stamped": the owner
+   decided (2 Oct 2026) that already-saved September rows are re-priced at September prices.
+   It writes ONLY the two price leaves at their exact paths - never a whole row - so qty,
+   uom, pack_size, subunit_qty, sub_uom, counted_at and the T2 confirmation fields cannot be
+   touched. Un-stamped rows are not written: they read the live item master, so (A) already
+   re-prices them. Other months are never written.
+════════════════════════════════════════════ */
+const SEP_IMPORT_YM = '2026-09';
+let SEPTEMBER_PRICE_IMPORT_DATA = null;
+async function loadSeptemberPriceImportData(){
+  if(SEPTEMBER_PRICE_IMPORT_DATA) return SEPTEMBER_PRICE_IMPORT_DATA;
+  const res = await fetch('docs/price_import_2026-09.json');
+  if(!res.ok) throw new Error('โหลด price_import_2026-09.json ไม่สำเร็จ (' + res.status + ')');
+  SEPTEMBER_PRICE_IMPORT_DATA = await res.json();
+  return SEPTEMBER_PRICE_IMPORT_DATA;
+}
+
+function downloadJsonFile(filename, obj){
+  const blob = new Blob([JSON.stringify(obj)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+function sepApplyToItems(items, toWrite){
+  const byCode = {};
+  toWrite.forEach(w => { byCode[w.code] = { price: w.price, priceUom: w.priceUom, priceBasis: 'EX_VAT', priceStatus: null, priceEffectiveFrom: SEP_IMPORT_YM, priceSource: 'code-206-2026-09' }; });
+  return items.map(it => byCode[it.code] ? { ...it, ...byCode[it.code] } : it);
+}
+
+/* storeMonthTotals() evaluated against a hypothetical item master (estCostOf reads the
+   global ITEMS_DATA for un-stamped rows) — swapped synchronously and always restored. */
+function sepTotalsFor(allE, ym, items){
+  const saved = ITEMS_DATA;
+  ITEMS_DATA = items;
+  try {
+    const t = storeMonthTotals(allE, ym, STORES.filter(s => isCountableAt(s, ym)));
+    const bands = { green:0, amber:0, red:0, none:0 };
+    Object.keys(t.costByStore).forEach(sNo => { bands[classifyAgainstBand(t.costByStore[sNo], REFERENCE_BAND[String(sNo)]).cls]++; });
+    return { total: Object.values(t.costByStore).reduce((a,b)=>a+b, 0), stores: t.sentNos.size, countedRows: t.countedRows, livePriceRows: t.livePriceRows, bands };
+  } finally { ITEMS_DATA = saved; }
+}
+
+function computeSeptemberPriceImportPreview(importData){
+  const rows = importData.rows, sum = importData.summary;
+  const countErrors = [];
+  const assertCount = (name, got, want) => { if(got !== want) countErrors.push(`${name}: ${got} ≠ ${want}`); };
+  // Re-verify the committed extract against its own summary at run time, not just at generation.
+  assertCount('unique_codes_all_files', rows.length + importData.storeCostOnly.length, sum.unique_codes_all_files);
+  assertCount('priced_rows', rows.filter(r=>r.status==='PRICED').length, sum.priced_rows);
+  assertCount('from_FBK', rows.filter(r=>r.source==='FBK').length, sum.from_FBK);
+  assertCount('conflict_unresolved', rows.filter(r=>r.status==='CONFLICT_UNRESOLVED').length, sum.conflict_unresolved);
+  assertCount('store_cost_only', importData.storeCostOnly.length, sum.store_cost_only);
+  assertCount('duplicate_codes', rows.length - new Set(rows.map(r=>r.code)).size, 0);
+  if(importData.effectiveFrom !== SEP_IMPORT_YM) countErrors.push(`effectiveFrom ${importData.effectiveFrom} ≠ ${SEP_IMPORT_YM}`);
+  if(importData.basis !== 'EX_VAT') countErrors.push(`basis ${importData.basis} ≠ EX_VAT`);
+
+  const itemMap = Object.fromEntries(ITEMS_DATA.map(it => [it.code, it]));
+  const toWrite = [], skippedNotInApp = [], skippedConflict = [], validationErrors = [];
+  rows.forEach(r => {
+    if(r.status === 'CONFLICT_UNRESOLVED'){ skippedConflict.push(r); return; }
+    const item = itemMap[r.code];
+    // Not live (⇒ no master_uom.json conversion, because ITEMS_DATA is master_uom-filtered):
+    // left out on purpose. Adding items is a separate step that needs a confirmed conversion.
+    if(!item){ skippedNotInApp.push(r); return; }
+    const m = MASTER_UOM[r.code];
+    if(!m || !m.packtype){ validationErrors.push({ code:r.code, name:r.name, issue:'ไม่มี master_uom.json — ไม่เดาหน่วย' }); return; }
+    if(!(r.exVat > 0)){ validationErrors.push({ code:r.code, name:r.name, issue:'ไม่มีราคา EX VAT ที่ใช้ได้' }); return; }
+    const priceUom = item.priceUom || m.packtype;
+    // The sheet prices the purchase unit (= master_uom packtype). If the item is currently
+    // priced per something else, the figure may be in a different unit - never guess.
+    if(priceUom !== m.packtype){ validationErrors.push({ code:r.code, name:r.name, issue:`priceUom ปัจจุบัน (${priceUom}) ไม่ตรงกับหน่วยซื้อใน master_uom.json (${m.packtype}) — ไม่เดา` }); return; }
+    const cur = item.price != null ? Number(item.price) : null, curBasis = item.priceBasis || null;
+    let kind, prevEx = null;
+    if(cur == null || item.priceStatus === 'NO_CONFIRMED_PRICE'){ kind = 'NEW'; }
+    else {
+      prevEx = curBasis === 'IN_VAT' ? cur / 1.07 : cur;
+      if(curBasis === 'EX_VAT' && Math.abs(cur - r.exVat) < 0.005) kind = 'UNCHANGED';
+      else if(curBasis === 'IN_VAT' && Math.abs(cur - r.exVat * 1.07) < 0.01) kind = 'BASIS_ONLY';  // same underlying price, only the VAT basis label moves
+      else kind = 'CHANGED';
+    }
+    toWrite.push({
+      code:r.code, name:r.name, kind, price:r.exVat, priceUom, source:r.source,
+      from:{ price:cur, basis:curBasis, eff:item.priceEffectiveFrom || null },
+      deltaPct: prevEx ? r.exVat / prevEx - 1 : null,
+      manualSepOverwrite: kind === 'CHANGED' && item.priceEffectiveFrom === SEP_IMPORT_YM && !item.priceSource
+    });
+  });
+
+  const writtenCodes = new Set(toWrite.map(w => w.code));
+  const untouched = ITEMS_DATA.filter(it => !writtenCodes.has(it.code));
+  const storeCostLive = importData.storeCostOnly.filter(r => itemMap[r.code]).map(r => ({ ...r, cur: itemMap[r.code] }));
+  const overruled = importData.conflicts.filter(c => c.kind === 'FBK_WINS' && itemMap[c.code]);
+  return {
+    canWrite: countErrors.length === 0 && validationErrors.length === 0,
+    countErrors, validationErrors, toWrite, skippedNotInApp, skippedConflict, storeCostLive, overruled,
+    beyond20: toWrite.filter(w => w.deltaPct != null && Math.abs(w.deltaPct) >= 0.2),
+    manualSep: toWrite.filter(w => w.manualSepOverwrite),
+    untouchedCount: untouched.length,
+    untouchedInVat: untouched.filter(it => it.priceBasis === 'IN_VAT').length,
+    currentInVat: ITEMS_DATA.filter(it => it.priceBasis === 'IN_VAT').length,
+    projectedInVat: untouched.filter(it => it.priceBasis === 'IN_VAT').length,
+    vatInconsistent: importData.vatInconsistent
+  };
+}
+
+async function showSeptemberPriceImportModal(){
+  let importData, preview;
+  try {
+    importData = await loadSeptemberPriceImportData();
+    preview = computeSeptemberPriceImportPreview(importData);
+  } catch(e){
+    showModal(`<h3>📥 นำเข้าราคา ก.ย. 69</h3><p style="color:var(--red);margin-top:10px">โหลด/ตรวจสอบไฟล์ไม่สำเร็จ: ${esc(e.message)}</p><div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+    return;
+  }
+  window.__sep_price_preview = preview;
+  const n = k => preview.toWrite.filter(w => w.kind === k).length;
+  const pct = d => d == null ? '—' : (d >= 0 ? '+' : '') + (d * 100).toFixed(1) + '%';
+  const tbl = (head, body, max) => `<div class="tbl-wrap" style="max-height:${max||170}px;margin-top:4px"><table class="dtbl"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  const sec = (color, title, inner) => `<div style="margin-top:12px"><div style="font-size:12.5px;font-weight:700;color:${color}">${title}</div>${inner}</div>`;
+  const card = (l, v) => `<div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">${l}</div><div style="font-size:18px;font-weight:800">${v}</div></div>`;
+  const priceCell = f => f.price == null ? '—' : `${fNum(f.price,2)} <span style="font-size:10px;color:var(--txt4)">${esc(vatBasisLabel(f.basis) || '?')}</span>`;
+
+  showModal(`
+    <h3>📥 นำเข้าราคาเดือน ก.ย. 69 — Code 206 Bakery, EX VAT</h3>
+    <p style="color:var(--txt2);margin-top:8px;font-size:12.5px">
+      ขั้นที่ 1 จาก 2: เขียนเฉพาะราคาใน <code>masterData/items</code> — <b>ไม่แตะจำนวนที่นับ</b> ·
+      FBK sha256 ${esc(importData.sourceFiles.FBK.sha256.slice(0,16))}… · effectiveFrom ${esc(importData.effectiveFrom)}
+    </p>
+    ${!preview.canWrite ? `<div style="margin-top:10px;padding:10px 13px;background:var(--red-bg);border-radius:var(--r8);border:1px solid rgba(224,50,68,.3);color:var(--red);font-weight:700;font-size:13px">
+      ❌ ตรวจสอบไม่ผ่าน — จะไม่เขียนอะไรเลยจนกว่าจะแก้ไข (all-or-nothing)
+      ${preview.countErrors.length ? `<div style="font-weight:400;margin-top:4px;font-size:12px">${preview.countErrors.map(esc).join('<br>')}</div>` : ''}
+    </div>` : `<div style="margin-top:10px;padding:10px 13px;background:var(--green-bg);border-radius:var(--r8);border:1px solid rgba(13,159,110,.25);color:var(--green);font-weight:700;font-size:13px">✅ ตรวจสอบผ่านทั้งหมด — พร้อมเขียน</div>`}
+
+    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px">
+      ${card('ราคาเปลี่ยน (CHANGED)', n('CHANGED'))}${card('เปลี่ยนฐาน IN→EX (ราคาเท่าเดิม)', n('BASIS_ONLY'))}
+      ${card('ราคาเดิมตรงอยู่แล้ว', n('UNCHANGED'))}${card('ตั้งราคาใหม่ (เดิมไม่มี)', n('NEW'))}
+    </div>
+    <div style="margin-top:6px;font-size:12px;color:var(--txt3)">
+      รวมเขียน <b>${preview.toWrite.length}</b> รายการ · ไม่แตะ (ไม่อยู่ในใบราคา) ${preview.untouchedCount} รายการ
+      · ข้าม (ยังไม่มีในแอป/ไม่มีตัวคูณหน่วย) ${preview.skippedNotInApp.length} รายการ
+      ${preview.skippedConflict.length ? ` · ข้าม (ราคาขัดแย้งกันเอง) ${preview.skippedConflict.length}` : ''}
+      · "ใช้ราคาทุนหน้าร้าน" ไม่ใช่ราคา → ไม่เขียน ${preview.storeCostLive.length} รายการที่มีในแอป
+    </div>
+
+    ${preview.manualSep.length ? sec('var(--warn)', `✏️ ${preview.manualSep.length} รายการที่ถูกแก้ราคาเองเดือน ก.ย. (ไม่ใช่จากใบราคา) — จะถูกแทนที่ด้วยราคาในไฟล์ตามที่ตกลง`,
+      tbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">ราคาเดิม</th><th class="tr">ราคาในไฟล์</th><th class="tr">เปลี่ยน</th>',
+        preview.manualSep.map(w=>`<tr><td class="code-cell">${esc(w.code)}</td><td>${esc(w.name)}</td><td class="tr num">${priceCell(w.from)}</td><td class="tr num">${fNum(w.price,2)}</td><td class="tr num">${pct(w.deltaPct)}</td></tr>`).join(''))) : ''}
+
+    ${sec('var(--warn)', `📊 ${preview.beyond20.length} รายการที่ราคาขยับเกิน ±20% (เทียบฐาน EX VAT)`,
+      tbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">เดิม</th><th class="tr">ใหม่ (EX)</th><th class="tr">เปลี่ยน</th>',
+        preview.beyond20.map(w=>`<tr><td class="code-cell">${esc(w.code)}</td><td>${esc(w.name)}</td><td class="tr num">${priceCell(w.from)}</td><td class="tr num">${fNum(w.price,2)}</td><td class="tr num" style="color:var(--warn)">${pct(w.deltaPct)}</td></tr>`).join(''), 190))}
+
+    ${preview.overruled.length ? sec('var(--txt2)', `🏪 ${preview.overruled.length} รหัสที่ไฟล์เฉพาะสาขาให้ราคาต่างจากไฟล์หลัก FBK — ใช้ราคา FBK (ระบบมีราคาเดียวต่อสินค้า)`,
+      tbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">FBK (ใช้)</th><th class="tr">ไฟล์สาขา (ไม่ใช้)</th>',
+        preview.overruled.map(c=>`<tr><td class="code-cell">${esc(c.code)}</td><td>${esc(c.name)}</td><td class="tr num">${fNum(Object.values(c.used)[0],2)}</td><td class="tr num">${Object.entries(c.overruled).map(([k,v])=>k+': '+fNum(v,2)).join(', ')}</td></tr>`).join(''), 150)) : ''}
+
+    ${preview.vatInconsistent.length ? sec('var(--txt2)', 'ℹ️ คอลัมน์ IN VAT ในไฟล์ไม่เท่ากับ EX × 1.07 (ใช้คอลัมน์ EX VAT)',
+      tbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">EX</th><th class="tr">IN</th>', preview.vatInconsistent.map(v=>`<tr><td class="code-cell">${esc(v.code)}</td><td>${esc(v.name)}</td><td class="tr num">${fNum(v.exVat,2)}</td><td class="tr num">${fNum(v.inVat,2)}</td></tr>`).join(''), 90)) : ''}
+
+    ${preview.storeCostLive.length ? sec('var(--txt2)', `ℹ️ ${preview.storeCostLive.length} รายการที่ใบราคาระบุ "ใช้ราคาทุนหน้าร้าน" — ไม่มีตัวเลขให้นำเข้า จึงคงราคาเดิมไว้ทั้งหมด`,
+      tbl('<th>รหัส</th><th>ชื่อ</th><th class="tr">ราคาปัจจุบัน</th>', preview.storeCostLive.map(r=>`<tr><td class="code-cell">${esc(r.code)}</td><td>${esc(r.name)}</td><td class="tr num">${r.cur.priceStatus==='NO_CONFIRMED_PRICE' ? 'ไม่มีราคายืนยัน' : priceCell({price:r.cur.price, basis:r.cur.priceBasis})}</td></tr>`).join(''), 130)) : ''}
+
+    ${preview.validationErrors.length ? sec('var(--red)', `❌ ${preview.validationErrors.length} รายการตรวจสอบไม่ผ่าน`,
+      tbl('<th>รหัส</th><th>ชื่อ</th><th>ปัญหา</th>', preview.validationErrors.map(e=>`<tr><td class="code-cell">${esc(e.code)}</td><td>${esc(e.name)}</td><td style="color:var(--red)">${esc(e.issue)}</td></tr>`).join(''))) : ''}
+
+    <div style="margin-top:12px;padding:10px 13px;background:var(--surface2);border-radius:var(--r8);font-size:12.5px">
+      ฐาน IN_VAT ตอนนี้: <b>${preview.currentInVat}</b> → หลังนำเข้า: <b>${preview.projectedInVat}</b> รายการ
+      (เหลือเพราะไม่มีราคา EX VAT ในใบราคา ก.ย. — ไม่แตะ)
+    </div>
+    <div id="sepMonthEffect" style="margin-top:10px;padding:10px 13px;background:var(--surface2);border-radius:var(--r8);font-size:12.5px;color:var(--txt3)">⏳ กำลังคำนวณผลต่อยอดรวมแต่ละเดือน…</div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">ปิด (ยังไม่เขียน)</button>
+      ${preview.canWrite ? `<button class="btn btn-blue" onclick="doSeptemberPriceImport()">📥 ยืนยันนำเข้า (${preview.toWrite.length} รายการ)</button>` : ''}
+    </div>`);
+
+  // Informational only (never blocks): which months' totals move. Months whose rows are all
+  // stamped (T11) cannot move; un-stamped rows read the live master, so they do.
+  try {
+    const allE = await dbGet('entries') || {};
+    const itemsAfter = sepApplyToItems(ITEMS_DATA, preview.toWrite);
+    const yms = [...new Set(Object.values(allE).flatMap(s => Object.keys(s || {})))].sort();
+    const lines = [];
+    yms.forEach(ym => {
+      const b = sepTotalsFor(allE, ym, ITEMS_DATA), a = sepTotalsFor(allE, ym, itemsAfter);
+      if(Math.abs(a.total - b.total) > 0.005) lines.push(`<tr><td>${esc(ymToFull(ym))}</td><td class="tr num">${b.livePriceRows}</td><td class="tr num">฿${fNum(b.total,2)}</td><td class="tr num">฿${fNum(a.total,2)}</td><td class="tr num">${pct(a.total/b.total-1)}</td></tr>`);
+    });
+    const el = document.getElementById('sepMonthEffect');
+    if(el) el.innerHTML = `<b>ผลต่อยอดรวมประมาณการ</b> (เฉพาะเดือนที่มีแถวยังไม่ตรึงราคา — แถวที่ตรึงแล้วไม่เปลี่ยนในขั้นนี้; ก.ย. จะถูกปรับต่อในขั้นที่ 2)` +
+      (lines.length ? `<table class="dtbl" style="margin-top:6px"><thead><tr><th>เดือน</th><th class="tr">แถวยังไม่ตรึง</th><th class="tr">ก่อน</th><th class="tr">หลัง</th><th class="tr">เปลี่ยน</th></tr></thead><tbody>${lines.join('')}</tbody></table>` : '<div style="margin-top:4px">ไม่มีเดือนใดเปลี่ยน</div>');
+  } catch(e){ const el = document.getElementById('sepMonthEffect'); if(el) el.textContent = 'คำนวณผลต่อยอดรวมไม่สำเร็จ: ' + e.message; }
+}
+
+async function doSeptemberPriceImport(){
+  const preview = window.__sep_price_preview;
+  if(!preview || !preview.canWrite){ toast('ไม่มี preview ที่ตรวจสอบผ่าน — เปิดหน้าต่างนำเข้าใหม่', 'err'); return; }
+  const importData = await loadSeptemberPriceImportData();
+  // Stale-snapshot guard: saveMasterItems() overwrites the whole array from this tab's
+  // in-memory ITEMS_DATA. If production moved since this tab loaded (another admin edit),
+  // or holds an item this tab filtered out, refuse rather than silently revert/prune it.
+  const fresh = await dbGet('masterData/items');
+  const freshArr = (Array.isArray(fresh) ? fresh : Object.values(fresh || {})).filter(Boolean);
+  const freshBy = Object.fromEntries(freshArr.map(i => [i.code, i]));
+  const PK = ['price','priceUom','priceBasis','priceStatus','priceEffectiveFrom','priceSource'];
+  const drift = ITEMS_DATA.filter(it => { const f = freshBy[it.code]; return !f || PK.some(k => (f[k] ?? null) !== (it[k] ?? null)); }).map(i => i.code);
+  if(freshArr.length !== ITEMS_DATA.length || drift.length){
+    toast(`ข้อมูลจริงเปลี่ยนไปจากที่โหลดไว้ (${drift.length} รายการ / จำนวน ${freshArr.length} vs ${ITEMS_DATA.length}) — รีเฟรชหน้าแล้วเปิดใหม่ ไม่ได้เขียนอะไร`, 'err');
+    return;
+  }
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  downloadJsonFile(`bakery_masterData_items_BEFORE_sep_import_${ts}.json`, freshArr);   // restore point
+  const newItems = sepApplyToItems(ITEMS_DATA, preview.toWrite);
+  closeModal();
+  const n = k => preview.toWrite.filter(w => w.kind === k).length;
+  await saveMasterItems(newItems, `นำเข้าราคาเดือน ก.ย. 69 แล้ว ${preview.toWrite.length} รายการ ✅ — ต่อด้วยขั้นที่ 2 (ปรับราคาที่ตรึงในรายการนับ)`);
+  await dbPush('logs', {
+    no:'admin', name:(SES && SES.name) || 'admin', ts:Date.now(), action:'septemberPriceImport', source:'excel-import',
+    written: preview.toWrite.length, changed: n('CHANGED'), basisOnly: n('BASIS_ONLY'), unchanged: n('UNCHANGED'), new: n('NEW'),
+    skippedNotInApp: preview.skippedNotInApp.length, untouched: preview.untouchedCount,
+    sourceSha256: { FBK: importData.sourceFiles.FBK.sha256, S2: importData.sourceFiles.S2.sha256, S22: importData.sourceFiles.S22.sha256 }
+  });
+  window.__sep_price_preview = null;
+}
+
+/* ── (B) re-price already-saved September entries: price leaves only ── */
+function computeSeptemberEntryReprice(importData, allE){
+  const itemPlan = computeSeptemberPriceImportPreview(importData);
+  const res = { canWrite: itemPlan.canWrite, itemPlan, writes: [], already: [], unstamped: [], uomMismatch: [], malformed: [], legacy: [], notInImport: [], stores: 0, rows: 0 };
+  if(!itemPlan.canWrite) return res;
+  const target = Object.fromEntries(itemPlan.toWrite.map(w => [w.code, w]));
+  const priceKeys = new Set(['price_at_count', 'priceBasis_at_count']);
+  Object.keys(allE).forEach(sNo => {
+    const mData = (allE[sNo] || {})[SEP_IMPORT_YM];
+    if(!mData || typeof mData !== 'object') return;
+    res.stores++;
+    Object.keys(mData).forEach(code => {
+      res.rows++;
+      const raw = mData[code], t = target[code];
+      if(!t){ res.notInImport.push({ sNo, code, basis: (raw && typeof raw === 'object') ? (raw.priceBasis_at_count || null) : null }); return; }
+      if(raw === null || typeof raw !== 'object'){ res.legacy.push({ sNo, code }); return; }   // bare legacy value: never stamped
+      if(raw.qty == null || raw.qty === ''){ res.malformed.push({ sNo, code }); return; }     // would be created by a partial write - never touch
+      const e = normalizeEntry(raw);
+      if(!hasPriceSnapshot(e)){ res.unstamped.push({ sNo, code }); return; }                  // floats on the item master, which step A re-prices
+      if(e.priceUom_at_count !== t.priceUom){ res.uomMismatch.push({ sNo, code, stamped: e.priceUom_at_count, item: t.priceUom }); return; }
+      if(Math.abs(e.price_at_count - t.price) < 0.005 && e.priceBasis_at_count === 'EX_VAT'){ res.already.push({ sNo, code }); return; }
+      res.writes.push({ sNo, code, fromPrice: e.price_at_count, fromBasis: e.priceBasis_at_count, toPrice: t.price });
+    });
+  });
+  // Totals before → after: current entries + current item master vs. re-stamped entries + new item master.
+  const itemsAfter = sepApplyToItems(ITEMS_DATA, itemPlan.toWrite);
+  const allEAfter = { ...allE };
+  const byStore = {};
+  res.writes.forEach(w => { (byStore[w.sNo] = byStore[w.sNo] || []).push(w); });
+  Object.keys(byStore).forEach(sNo => {
+    const month = { ...allE[sNo][SEP_IMPORT_YM] };
+    byStore[sNo].forEach(w => { month[w.code] = { ...month[w.code], price_at_count: w.toPrice, priceBasis_at_count: 'EX_VAT' }; });
+    allEAfter[sNo] = { ...allE[sNo], [SEP_IMPORT_YM]: month };
+  });
+  res.before = sepTotalsFor(allE, SEP_IMPORT_YM, ITEMS_DATA);
+  res.after = sepTotalsFor(allEAfter, SEP_IMPORT_YM, itemsAfter);
+  res.writeStores = Object.keys(byStore).length;
+  res.writeCodes = new Set(res.writes.map(w => w.code)).size;
+  res.fromBasis = { EX_VAT: 0, IN_VAT: 0, none: 0 };
+  res.writes.forEach(w => { res.fromBasis[w.fromBasis || 'none']++; });
+  res.untouchedBasis = { IN_VAT: 0, EX_VAT: 0, none: 0 };
+  res.notInImport.forEach(r => { res.untouchedBasis[r.basis || 'none']++; });
+  return res;
+}
+
+async function showSeptemberEntryRepriceModal(){
+  let importData, plan;
+  showModal(`<h3>🔁 ปรับราคาที่ตรึงในรายการนับ ก.ย. 69</h3><p style="margin-top:10px;color:var(--txt3)">⏳ กำลังอ่านรายการนับทุกสาขา…</p>`);
+  try {
+    importData = await loadSeptemberPriceImportData();
+    const allE = await dbGet('entries') || {};
+    plan = computeSeptemberEntryReprice(importData, allE);
+  } catch(e){
+    showModal(`<h3>🔁 ปรับราคาที่ตรึงในรายการนับ ก.ย. 69</h3><p style="color:var(--red);margin-top:10px">ไม่สำเร็จ: ${esc(e.message)}</p><div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+    return;
+  }
+  window.__sep_entry_plan = plan;
+  const pct = (a, b) => b ? ((a / b - 1) * 100 >= 0 ? '+' : '') + ((a / b - 1) * 100).toFixed(2) + '%' : '—';
+  const card = (l, v) => `<div class="card" style="padding:8px 10px"><div style="color:var(--txt3)">${l}</div><div style="font-size:18px;font-weight:800">${v}</div></div>`;
+  const bd = b => `${b.green} ปกติ / ${b.amber} ต่ำกว่า / ${b.red} สูงกว่า / ${b.none} ไม่มี band`;
+  if(!plan.canWrite){
+    showModal(`<h3>🔁 ปรับราคาที่ตรึงในรายการนับ ก.ย. 69</h3>
+      <div style="margin-top:10px;padding:10px 13px;background:var(--red-bg);border-radius:var(--r8);color:var(--red);font-weight:700">❌ ตรวจสอบราคานำเข้าไม่ผ่าน — ดูรายละเอียดที่หน้าต่าง "นำเข้าราคา ก.ย. 69" ก่อน ไม่ได้เขียนอะไร</div>
+      <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+    return;
+  }
+  showModal(`
+    <h3>🔁 ปรับราคาที่ตรึงในรายการนับ ${esc(ymToFull(SEP_IMPORT_YM))}</h3>
+    <p style="color:var(--txt2);margin-top:8px;font-size:12.5px">
+      ขั้นที่ 2 จาก 2: ปรับ <b>เฉพาะ</b> <code>price_at_count</code> และ <code>priceBasis_at_count</code> ของแถวที่สาขาบันทึกไว้แล้วในเดือน ก.ย. 69 เป็นราคา EX VAT ตามใบราคา —
+      <b>ไม่แตะ</b> จำนวนนับ (qty), หน่วย, ขนาดบรรจุ, เศษ, เวลานับ หรือการยืนยัน และไม่แตะเดือนอื่น
+    </p>
+    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px">
+      ${card('สาขาที่มีข้อมูล ก.ย.', plan.stores)}${card('แถวทั้งหมดใน ก.ย.', fNum(plan.rows,0))}
+      ${card('แถวที่จะปรับราคา', fNum(plan.writes.length,0))}${card('จาก ' + plan.writeStores + ' สาขา', plan.writeCodes + ' รหัส')}
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:var(--txt3);line-height:1.7">
+      ราคาเดิมของแถวที่จะปรับ: รวม VAT ${fNum(plan.fromBasis.IN_VAT,0)} · ไม่รวม VAT ${fNum(plan.fromBasis.EX_VAT,0)} · ไม่ระบุฐาน ${fNum(plan.fromBasis.none,0)}<br>
+      ข้าม: ราคาตรงอยู่แล้ว ${fNum(plan.already.length,0)} · ยังไม่ตรึงราคา (ขั้นที่ 1 ปรับให้อัตโนมัติ) ${fNum(plan.unstamped.length,0)} ·
+      ไม่อยู่ในใบราคา (ไม่แตะ) ${fNum(plan.notInImport.length,0)} (ตรึงรวม VAT ${fNum(plan.untouchedBasis.IN_VAT,0)}) ·
+      ค่าเก่า/ผิดรูป ${plan.legacy.length + plan.malformed.length} · หน่วยราคาไม่ตรง ${plan.uomMismatch.length}
+    </div>
+    <div style="margin-top:12px;padding:10px 13px;background:var(--surface2);border-radius:var(--r8);font-size:12.5px;line-height:1.8">
+      <b>ยอดรวมประมาณการ ก.ย. 69</b> (สาขาที่ยังนับอยู่ ${plan.before.stores} สาขา, ${fNum(plan.before.countedRows,0)} แถว):<br>
+      ก่อน ฿${fNum(plan.before.total,2)} → หลัง ฿${fNum(plan.after.total,2)} (${pct(plan.after.total, plan.before.total)})<br>
+      แถวที่ยังไม่ตรึงราคา: ${fNum(plan.before.livePriceRows,0)} → ${fNum(plan.after.livePriceRows,0)} (ยังไม่ตรึง = ใช้ราคาปัจจุบันของรายการสินค้า)<br>
+      band: ก่อน ${bd(plan.before.bands)}<br>band: หลัง ${bd(plan.after.bands)}
+    </div>
+    ${plan.uomMismatch.length ? `<div style="margin-top:10px;font-size:12px;color:var(--warn)">⚠️ ${plan.uomMismatch.length} แถวที่หน่วยราคาที่ตรึงไว้ไม่ตรงกับหน่วยซื้อ — ไม่แตะ: ${plan.uomMismatch.slice(0,12).map(u => esc(u.sNo + '/' + u.code)).join(', ')}${plan.uomMismatch.length>12?' …':''}</div>` : ''}
+    <div style="margin-top:12px;padding:10px 13px;background:var(--amber-bg,var(--surface2));border-radius:var(--r8);font-size:12px;line-height:1.7">
+      <b>ก่อนเขียน:</b> ระบบจะดาวน์โหลดไฟล์สำรองรายการนับ ก.ย. ทุกสาขา แล้วอ่านแต่ละสาขาซ้ำอีกครั้งก่อนเขียน (ข้ามแถวที่เปลี่ยนไประหว่างนี้) เขียนทีละสาขา (ทำซ้ำได้ — รันใหม่จะข้ามแถวที่ปรับแล้ว)
+      และตรวจหลังเขียนว่าทุกฟิลด์ที่ไม่ใช่ราคาเหมือนเดิม 100%. ควรรันตอนที่ไม่มีสาขาเปิดหน้านับอยู่ (หน้าที่เปิดค้างไว้ก่อนหน้านี้อาจบันทึกทับราคาเก่ากลับมา)
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">ปิด (ยังไม่เขียน)</button>
+      ${plan.writes.length ? `<button class="btn btn-blue" onclick="doSeptemberEntryReprice()">🔁 ยืนยันปรับราคา ${fNum(plan.writes.length,0)} แถว</button>` : ''}
+    </div>`);
+}
+
+/* Compare a month before/after: every field except the two price leaves must be identical;
+   the two price leaves must equal the plan for written rows and be unchanged otherwise. */
+function verifySeptemberReprice(beforeMonths, afterAllE, writeMap){
+  const problems = []; let rowsChecked = 0, priceFieldsOk = 0;
+  const strip = o => { const c = { ...o }; delete c.price_at_count; delete c.priceBasis_at_count; return JSON.stringify(Object.keys(c).sort().map(k => [k, c[k]])); };
+  Object.keys(beforeMonths).forEach(sNo => {
+    const b = beforeMonths[sNo] || {}, a = ((afterAllE[sNo] || {})[SEP_IMPORT_YM]) || {};
+    const keysB = Object.keys(b).sort().join(','), keysA = Object.keys(a).sort().join(',');
+    if(keysB !== keysA) problems.push(`${sNo}: รายการแถวไม่ตรงกัน (ก่อน ${Object.keys(b).length} / หลัง ${Object.keys(a).length})`);
+    Object.keys(b).forEach(code => {
+      const rb = b[code], ra = a[code];
+      if(ra === undefined) return;
+      rowsChecked++;
+      if(rb === null || typeof rb !== 'object' || typeof ra !== 'object'){ if(JSON.stringify(rb) !== JSON.stringify(ra)) problems.push(`${sNo}/${code}: ค่าเปลี่ยน`); return; }
+      if(strip(rb) !== strip(ra)) problems.push(`${sNo}/${code}: ฟิลด์ที่ไม่ใช่ราคาเปลี่ยนไป`);
+      const w = writeMap[sNo + '/' + code];
+      if(w){
+        if(Math.abs(ra.price_at_count - w.toPrice) > 1e-9 || ra.priceBasis_at_count !== 'EX_VAT') problems.push(`${sNo}/${code}: ราคาไม่ตรงแผน (${ra.price_at_count}/${ra.priceBasis_at_count})`); else priceFieldsOk++;
+      } else if(rb.price_at_count !== ra.price_at_count || rb.priceBasis_at_count !== ra.priceBasis_at_count) problems.push(`${sNo}/${code}: แถวที่ไม่อยู่ในแผนถูกเปลี่ยนราคา`);
+    });
+  });
+  return { problems, rowsChecked, priceFieldsOk };
+}
+
+async function doSeptemberEntryReprice(){
+  const plan = window.__sep_entry_plan;
+  if(!plan || !plan.canWrite || !plan.writes.length){ toast('ไม่มี preview ที่พร้อมเขียน — เปิดหน้าต่างใหม่', 'err'); return; }
+  const importData = await loadSeptemberPriceImportData();
+  const target = Object.fromEntries(plan.itemPlan.toWrite.map(w => [w.code, w]));
+  const progress = t => showModal(`<h3>🔁 ปรับราคาที่ตรึงในรายการนับ ก.ย. 69</h3><p style="margin-top:10px;font-size:13px">${t}</p>`);
+
+  // 1) restore point: every store's September month, exactly as it is right now
+  progress('⏳ กำลังสำรองข้อมูล ก.ย. ทุกสาขา…');
+  const allE0 = await dbGet('entries') || {};
+  const before = {};
+  Object.keys(allE0).forEach(sNo => { const m = (allE0[sNo] || {})[SEP_IMPORT_YM]; if(m) before[sNo] = m; });
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  downloadJsonFile(`bakery_entries_${SEP_IMPORT_YM}_BEFORE_reprice_${ts}.json`, { ym: SEP_IMPORT_YM, takenAt: Date.now(), stores: before });
+
+  // 2) per store: fresh read -> re-check each row -> multi-path write of the two price leaves only
+  const byStore = {};
+  plan.writes.forEach(w => { (byStore[w.sNo] = byStore[w.sNo] || []).push(w); });
+  const storeNos = Object.keys(byStore);
+  const done = [], skippedChanged = [], failed = [];
+  const written = {};
+  for(let i = 0; i < storeNos.length; i++){
+    const sNo = storeNos[i];
+    progress(`⏳ กำลังเขียน… สาขา ${esc(sNo)} (${i + 1}/${storeNos.length}) — ปรับแล้ว ${Object.keys(written).length} แถว`);
+    try {
+      const month = await dbGet(`entries/${sNo}/${SEP_IMPORT_YM}`) || {};
+      const upd = {};
+      byStore[sNo].forEach(w => {
+        const raw = month[w.code];
+        const e = (raw && typeof raw === 'object' && raw.qty != null && raw.qty !== '') ? normalizeEntry(raw) : null;
+        // still present, still stamped exactly as previewed — otherwise someone saved in between: skip, never force
+        if(!e || !hasPriceSnapshot(e) || e.priceUom_at_count !== target[w.code].priceUom ||
+           Math.abs(e.price_at_count - w.fromPrice) > 1e-9 || (e.priceBasis_at_count || null) !== (w.fromBasis || null)){
+          skippedChanged.push(`${sNo}/${w.code}`); return;
+        }
+        const base = `entries/${sNo}/${SEP_IMPORT_YM}/${w.code}`;
+        upd[base + '/price_at_count'] = w.toPrice;
+        upd[base + '/priceBasis_at_count'] = 'EX_VAT';
+        written[sNo + '/' + w.code] = w;
+      });
+      if(Object.keys(upd).length){ await db.ref().update(Object.fromEntries(Object.entries(upd).map(([k, v]) => [DB_ROOT + '/' + k, v]))); }
+      done.push(sNo);
+    } catch(err){
+      failed.push(`${sNo}: ${err.message}`);
+      break;   // stop at the first failure; completed stores are final, a re-run resumes (idempotent)
+    }
+  }
+
+  // 3) verify against the restore point, from a fresh read
+  progress('⏳ กำลังตรวจสอบหลังเขียน…');
+  const allE1 = await dbGet('entries') || {};
+  const v = verifySeptemberReprice(before, allE1, written);
+  await dbPush('logs', {
+    no:'admin', name:(SES && SES.name) || 'admin', ts:Date.now(), action:'septemberEntryReprice', source:'admin-override', ym: SEP_IMPORT_YM,
+    rowsWritten: Object.keys(written).length, storesWritten: done.length, skippedChanged: skippedChanged.length, failed: failed.length,
+    verifyProblems: v.problems.length, sourceSha256: importData.sourceFiles.FBK.sha256
+  });
+  window.__sep_entry_plan = null;
+  const ok = !failed.length && !v.problems.length;
+  showModal(`
+    <h3>${ok ? '✅' : '⚠️'} ปรับราคาที่ตรึงในรายการนับ ก.ย. 69 — ${ok ? 'เสร็จสมบูรณ์' : 'ต้องตรวจสอบ'}</h3>
+    <div style="margin-top:10px;font-size:13px;line-height:1.8">
+      เขียน <b>${fNum(Object.keys(written).length,0)}</b> แถว จาก ${done.length}/${storeNos.length} สาขา ·
+      ข้าม (เปลี่ยนไประหว่างรอ) ${skippedChanged.length} · ผิดพลาด ${failed.length}<br>
+      ตรวจหลังเขียน: ตรวจ ${fNum(v.rowsChecked,0)} แถว · ราคาตรงแผน ${fNum(v.priceFieldsOk,0)} ·
+      <b style="color:${v.problems.length ? 'var(--red)' : 'var(--green)'}">ปัญหา ${v.problems.length}</b>
+      ${v.problems.length === 0 ? '— ทุกฟิลด์ที่ไม่ใช่ราคา (qty, หน่วย, ขนาดบรรจุ, เศษ, เวลานับ, การยืนยัน) เหมือนก่อนเขียนทุกแถว' : ''}
+    </div>
+    ${failed.length ? `<div style="margin-top:8px;color:var(--red);font-size:12px">${failed.map(esc).join('<br>')}<br>รันใหม่เพื่อทำต่อ (ข้ามแถวที่ปรับแล้ว)</div>` : ''}
+    ${skippedChanged.length ? `<div style="margin-top:8px;color:var(--warn);font-size:12px">ข้าม: ${skippedChanged.slice(0,20).map(esc).join(', ')}${skippedChanged.length>20?' …':''} — รันใหม่เพื่อดูว่ายังเหลือไหม</div>` : ''}
+    ${v.problems.length ? `<div class="tbl-wrap" style="max-height:200px;margin-top:8px;font-size:12px;color:var(--red)">${v.problems.slice(0,60).map(esc).join('<br>')}</div>` : ''}
+    <div style="margin-top:8px;font-size:12px;color:var(--txt3)">ไฟล์สำรองก่อนเขียนอยู่ในโฟลเดอร์ดาวน์โหลดของเบราว์เซอร์ (bakery_entries_${SEP_IMPORT_YM}_BEFORE_reprice_*.json)</div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
 }
 
 /* ════════════════════════════════════════════
