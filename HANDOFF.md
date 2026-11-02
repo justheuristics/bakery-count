@@ -68,7 +68,8 @@ The original doc lists 9 tickets; T10 and T11 were added after it was written.
 | T11 | 🟡 P2 | Snapshot price onto the entry at save time (**prerequisite for T8**) | ✅ merged — bakery's shape diverges from packaging's, see Q3 below |
 | T8a | 🟡 P2 | One-off August 2026 price import (**bakery only**, narrowed from T8, see kickoff doc) | ✅ done — run against production 25 Aug 2026 |
 | T8b | 🟡 P2 | September 2026 price import + re-price of saved September entries (**bakery only**) | ✅ run against production 2 Oct 2026 — see "T8b" below |
-| T8c | 🟡 P2 | Month-agnostic version of T8b + "freeze" of months that were never price-stamped (**bakery only**) | ✅ built and verified in `demo/`; the freeze has **not** been run against production — see "T8c" below |
+| T8c | 🟡 P2 | Month-agnostic version of T8b + "freeze" of months that were never price-stamped (**bakery only**) | ✅ done — July 2026 frozen on production 2 Oct 2026 (34,286 rows, total unchanged) |
+| T8d | 🟡 P2 | November 2026 price import + batch-add of 18 Buyer-confirmed items for the October count (**bakery only**) | ✅ November import run 2 Nov 2026; items: see "T8d" below |
 
 T1–T7, T10, T11 and T8a are done in both repos where applicable (T8a is bakery-only). **Bakery's T11 diverges from packaging's shape** — see T11's "What's done" section for why. **T8 proper (the recurring import mechanism) remains open** — T8a only applied one month's numbers, it did not build the upload UI.
 
@@ -473,6 +474,25 @@ unpriced, qty 0, extra fields, and an open month): freeze stamped exactly the in
 rules re-implemented in Python), total unchanged to the cent, 0 non-price fields changed, open month refused, re-run wrote nothing;
 steps (ข)/(ค) run for a different month (fake 2026-10 file) wrote exactly the expected 206 / 133 rows. `demo/` restored afterwards.
 Extractor: reproduces September's data and refuses a wrong-month zip. Nothing in T8c has been fired against production.
+
+### T8d — November 2026 prices + new items for October (2 Nov 2026)
+
+- **November import** (`docs/price_import_2026-11.json`, sheets confirm 1–30 Nov 2569; per-file counts independently recounted):
+  run against production 2 Nov 2026 **while October was still open** (owner decision): 4 price changes (+1.7%: 115101, 603090,
+  213860, 213966), 202 re-labelled `2026-11`, verified item-by-item. Stamped October rows are unaffected; only an October row
+  saved for the first time afterwards picks up the November price (accepted). The October Code 206 file had prices identical
+  to September's and was deliberately not imported.
+- **New items (button ง in the price hub, `docs/new_items_<ym>.json`)**: batch-add for Buyer-confirmed items. Source: the
+  Buyer's "Bakery request vs App - ตรวจสอบข้อมูล" workbook (sheet 1). 18 items that are on the November price list were added
+  for the **October** count at the November EX VAT price (owner decision), `priceEffectiveFrom:'2026-10'`,
+  `priceSource:'code-206-2026-11'`. Class comes from the price list (68/78) — **never** the Buyer's "Sub Class" column,
+  which is the other numbering system. Conversions as the Buyer filled them (typos ลััง→ลัง, ชน→ชิ้น). The action refuses
+  unless every item's `master_uom.json` entry is already loaded and identical, so `master_uom.json` must be deployed first.
+- **Waiting on the Buyer** (not added): 922253, 232183 (not on the price list — VAT basis of the Buyer's cost unknown) and six
+  store-shelf items 229903, 229905, 925727, 280692, 134544, 106962 (no price-list price, VAT basis unknown, real Class unknown
+  except 134544 = 306 in `data.json`). 13 rows the Buyer left blank are out, incl. three invalid 11-digit codes. The Buyer did
+  not answer the "mismatch" sheet (45 live items) — the app is unchanged for those.
+- The app has no per-store items: every store sees the new items on its October count, not just store 65.
 
 ## Departures from the original plan doc
 

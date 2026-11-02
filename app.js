@@ -3477,6 +3477,7 @@ function showMonthlyPriceHub(){
       <button class="btn btn-secondary" onclick="showFreezeMonthsModal()">🧊 (ก) ตรึงราคาเดือนที่ยังลอยอยู่</button>
       <button class="btn btn-blue" onclick="const y=priceHubYM(); if(y) showPriceImportModal(y)">📥 (ข) นำเข้าราคา</button>
       <button class="btn btn-blue" onclick="const y=priceHubYM(); if(y) showEntryRepriceModal(y)">🔁 (ค) ปรับราคาที่ตรึงในรายการนับ</button>
+      <button class="btn btn-secondary" onclick="const y=priceHubYM(); if(y) showNewItemsModal(y)">➕ (ง) เพิ่มสินค้าใหม่ (docs/new_items_เดือน.json)</button>
       <button class="btn btn-secondary" onclick="closeModal()">ปิด</button>
     </div>`);
 }
@@ -3640,18 +3641,8 @@ async function doPriceImport(){
   if(!preview || !preview.canWrite){ toast('ไม่มี preview ที่ตรวจสอบผ่าน — เปิดหน้าต่างนำเข้าใหม่', 'err'); return; }
   const ym = preview.ym;
   const importData = await loadPriceImportData(ym);
-  // Stale-snapshot guard: saveMasterItems() overwrites the whole array from this tab's
-  // in-memory ITEMS_DATA. If production moved since this tab loaded (another admin edit),
-  // or holds an item this tab filtered out, refuse rather than silently revert/prune it.
-  const fresh = await dbGet('masterData/items');
-  const freshArr = (Array.isArray(fresh) ? fresh : Object.values(fresh || {})).filter(Boolean);
-  const freshBy = Object.fromEntries(freshArr.map(i => [i.code, i]));
-  const PK = ['price','priceUom','priceBasis','priceStatus','priceEffectiveFrom','priceSource'];
-  const drift = ITEMS_DATA.filter(it => { const f = freshBy[it.code]; return !f || PK.some(k => (f[k] ?? null) !== (it[k] ?? null)); }).map(i => i.code);
-  if(freshArr.length !== ITEMS_DATA.length || drift.length){
-    toast(`ข้อมูลจริงเปลี่ยนไปจากที่โหลดไว้ (${drift.length} รายการ / จำนวน ${freshArr.length} vs ${ITEMS_DATA.length}) — รีเฟรชหน้าแล้วเปิดใหม่ ไม่ได้เขียนอะไร`, 'err');
-    return;
-  }
+  const freshArr = await itemMasterFreshOrRefuse();
+  if(!freshArr) return;
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   downloadJsonFile(`bakery_masterData_items_BEFORE_price_import_${ym}_${ts}.json`, freshArr);   // restore point
   const newItems = priceImportApplyToItems(ITEMS_DATA, preview.toWrite, importData);
@@ -3665,6 +3656,119 @@ async function doPriceImport(){
     sourceSha256: Object.fromEntries(Object.entries(importData.sourceFiles).map(([k, v]) => [k, v.sha256]))
   });
   window.__pi_price_preview = null;
+}
+
+/* Stale-snapshot guard shared by every whole-array item-master write here: saveMasterItems()
+   overwrites masterData/items from this tab's in-memory ITEMS_DATA. If production moved since
+   this tab loaded (another admin edit), or holds an item this tab filtered out, refuse rather
+   than silently revert/prune it. Returns the fresh array (restore point) or null. */
+async function itemMasterFreshOrRefuse(){
+  const fresh = await dbGet('masterData/items');
+  const freshArr = (Array.isArray(fresh) ? fresh : Object.values(fresh || {})).filter(Boolean);
+  const freshBy = Object.fromEntries(freshArr.map(i => [i.code, i]));
+  const PK = ['class','name','price','priceUom','priceBasis','priceStatus','priceEffectiveFrom','priceSource'];
+  const drift = ITEMS_DATA.filter(it => { const f = freshBy[it.code]; return !f || PK.some(k => (f[k] ?? null) !== (it[k] ?? null)); }).map(i => i.code);
+  if(freshArr.length !== ITEMS_DATA.length || drift.length){
+    toast(`ข้อมูลจริงเปลี่ยนไปจากที่โหลดไว้ (${drift.length} รายการ / จำนวน ${freshArr.length} vs ${ITEMS_DATA.length}) — รีเฟรชหน้าแล้วเปิดใหม่ ไม่ได้เขียนอะไร`, 'err');
+    return null;
+  }
+  return freshArr;
+}
+
+/* ── (ง) batch-add new items from docs/new_items_{ym}.json ──
+   For items the Buyer has confirmed (class, pack conversion, price). Each item must already
+   have a master_uom.json entry that matches the file EXACTLY — that file must be deployed
+   before this runs, or the item is invisible to stores and pruned by the next admin save
+   (CLAUDE.md). Never guesses: any mismatch blocks the whole write (all-or-nothing). An item
+   already live with identical data is reported and skipped, so a re-run is a no-op. */
+const NEW_ITEMS_DATA = {};
+async function loadNewItemsData(ym){
+  if(NEW_ITEMS_DATA[ym]) return NEW_ITEMS_DATA[ym];
+  const res = await fetch(`docs/new_items_${ym}.json`, { cache:'no-store' });
+  if(!res.ok) throw new Error(`ไม่พบ docs/new_items_${ym}.json (${res.status})`);
+  NEW_ITEMS_DATA[ym] = await res.json();
+  return NEW_ITEMS_DATA[ym];
+}
+
+function computeNewItemsPreview(doc, ym){
+  const errors = [], toAdd = [], alreadyLive = [];
+  if(doc.effectiveFrom !== ym) errors.push({ code:'-', issue:`effectiveFrom ${doc.effectiveFrom} ≠ เดือนที่เลือก ${ym}` });
+  if(doc.basis !== 'EX_VAT') errors.push({ code:'-', issue:`basis ${doc.basis} ≠ EX_VAT` });
+  const seen = new Set();
+  const live = Object.fromEntries(ITEMS_DATA.map(it => [it.code, it]));
+  (doc.items || []).forEach(it => {
+    const bad = issue => errors.push({ code: it.code, name: it.name, issue });
+    if(!it.code || seen.has(it.code)){ bad('รหัสว่างหรือซ้ำในไฟล์'); return; }
+    seen.add(it.code);
+    if(!it.name || !it.cls || !/^\d+$/.test(String(it.cls))){ bad('ชื่อ/Class ไม่ครบ'); return; }
+    if(!(Number(it.price) > 0)){ bad('ไม่มีราคา'); return; }
+    const m = MASTER_UOM[it.code];
+    if(!m){ bad('ยังไม่มีใน master_uom.json ที่โหลดอยู่ — deploy ไฟล์ก่อน แล้วรีเฟรช'); return; }
+    if(m.packtype !== it.packtype || Number(m.pack_size) !== Number(it.pack_size) || m.sub_uom !== it.sub_uom){
+      bad(`master_uom.json (${m.packtype}/${m.pack_size}/${m.sub_uom}) ไม่ตรงกับไฟล์ (${it.packtype}/${it.pack_size}/${it.sub_uom})`); return;
+    }
+    const l = live[it.code];
+    if(l){
+      const same = String(l.class) === String(it.cls) && Number(l.price) === Number(it.price) && l.priceUom === it.packtype && l.priceBasis === 'EX_VAT';
+      if(same) alreadyLive.push(it); else bad('มีในรายการสินค้าอยู่แล้วแต่ข้อมูลต่างจากไฟล์ — ไม่เขียนทับ');
+      return;
+    }
+    toAdd.push(it);
+  });
+  return { ym, canWrite: errors.length === 0 && toAdd.length > 0, errors, toAdd, alreadyLive };
+}
+
+async function showNewItemsModal(ym){
+  let doc, p;
+  try { doc = await loadNewItemsData(ym); p = computeNewItemsPreview(doc, ym); }
+  catch(e){
+    showModal(`<h3>➕ เพิ่มสินค้าใหม่ ${esc(ymToFull(ym))}</h3><p style="color:var(--red);margin-top:10px">${esc(e.message)}</p><div class="modal-actions"><button class="btn btn-secondary" onclick="showMonthlyPriceHub()">← กลับ</button></div>`);
+    return;
+  }
+  window.__pi_new_items = { p, doc };
+  const maxNo = ITEMS_DATA.reduce((a, it) => Math.max(a, Number(it.no) || 0), 0);
+  showModal(`
+    <h3>➕ เพิ่มสินค้าใหม่เข้ารายการสินค้า — เริ่มนับเดือน ${esc(ymToFull(ym))}</h3>
+    <p style="color:var(--txt2);margin-top:8px;font-size:12.5px;line-height:1.7">
+      ${esc(doc.purpose || '')}<br>
+      ราคา ${esc(doc.basis)} · priceEffectiveFrom ${esc(doc.effectiveFrom)} · priceSource ${esc(doc.priceSource)} ·
+      สินค้าใหม่จะแสดงให้<b>ทุกสาขา</b>นับทันที
+    </p>
+    ${p.errors.length ? piBox('var(--red-bg)', 'var(--red)', '❌ ตรวจสอบไม่ผ่าน — จะไม่เขียนอะไรเลย (all-or-nothing)') :
+      (p.toAdd.length ? piBox('var(--green-bg)', 'var(--green)', `✅ ตรวจสอบผ่าน — พร้อมเพิ่ม ${p.toAdd.length} รายการ`) : piBox('var(--surface2)', 'var(--txt2)', 'ไม่มีอะไรต้องเพิ่ม — ทุกรายการมีอยู่แล้ว'))}
+    ${p.toAdd.length ? piTbl('<th>#</th><th>รหัส</th><th>ชื่อ</th><th>Class</th><th>หน่วย / ขนาดบรรจุ / หน่วยย่อย</th><th class="tr">ราคา (EX)</th>',
+      p.toAdd.map((it, i) => `<tr><td class="num">${maxNo + i + 1}</td><td class="code-cell">${esc(it.code)}</td><td>${esc(it.name)}</td><td>${esc(it.cls)}</td><td>${esc(it.packtype)} / ${fNum(it.pack_size,0)} / ${esc(it.sub_uom)}</td><td class="tr num">${fNum(it.price,2)}</td></tr>`).join(''), 300) : ''}
+    ${p.alreadyLive.length ? `<div style="margin-top:8px;font-size:12px;color:var(--txt3)">มีอยู่แล้ว (ข้าม): ${p.alreadyLive.map(it => esc(it.code)).join(', ')}</div>` : ''}
+    ${p.errors.length ? piSec('var(--red)', `❌ ${p.errors.length} รายการตรวจสอบไม่ผ่าน`, piTbl('<th>รหัส</th><th>ชื่อ</th><th>ปัญหา</th>', p.errors.map(e => `<tr><td class="code-cell">${esc(e.code)}</td><td>${esc(e.name || '')}</td><td style="color:var(--red)">${esc(e.issue)}</td></tr>`).join(''))) : ''}
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="showMonthlyPriceHub()">← กลับ</button>
+      <button class="btn btn-secondary" onclick="closeModal()">ปิด (ยังไม่เขียน)</button>
+      ${p.canWrite ? `<button class="btn btn-blue" onclick="doAddNewItems()">➕ ยืนยันเพิ่ม ${p.toAdd.length} รายการ</button>` : ''}
+    </div>`);
+}
+
+async function doAddNewItems(){
+  const st = window.__pi_new_items;
+  if(!st || !st.p.canWrite){ toast('ไม่มี preview ที่ตรวจสอบผ่าน — เปิดหน้าต่างใหม่', 'err'); return; }
+  const { p, doc } = st;
+  const freshArr = await itemMasterFreshOrRefuse();
+  if(!freshArr) return;
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  downloadJsonFile(`bakery_masterData_items_BEFORE_new_items_${p.ym}_${ts}.json`, freshArr);   // restore point
+  const maxNo = ITEMS_DATA.reduce((a, it) => Math.max(a, Number(it.no) || 0), 0);
+  const added = p.toAdd.map((it, i) => ({
+    no: maxNo + i + 1, class: String(it.cls), code: it.code, name: it.name,
+    price: Number(it.price), priceUom: it.packtype, priceBasis: 'EX_VAT', priceStatus: null,
+    priceEffectiveFrom: doc.effectiveFrom, priceSource: doc.priceSource
+  }));
+  closeModal();
+  await saveMasterItems([...ITEMS_DATA, ...added], `เพิ่มสินค้าใหม่แล้ว ${added.length} รายการ ✅`);
+  await dbPush('logs', {
+    no:'admin', name:(SES && SES.name) || 'admin', ts:Date.now(), action:'batchAddItems', source:'excel-import', ym: p.ym,
+    added: added.length, codes: added.map(a => a.code), priceSource: doc.priceSource,
+    buyerWorkbookSha256: (doc.sources && doc.sources.buyerWorkbookSha256) || null
+  });
+  window.__pi_new_items = null;
 }
 
 /* ── shared by (2) and (3): compare a month before/after a leaf-only write ──

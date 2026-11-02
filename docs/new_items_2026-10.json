@@ -1,0 +1,216 @@
+{
+ "purpose": "New items for the October 2026 count (store 65 request + Buyer review), priced at the November 2026 Code 206 EX VAT price per owner decision (2 Nov 2026)",
+ "effectiveFrom": "2026-10",
+ "basis": "EX_VAT",
+ "priceSource": "code-206-2026-11",
+ "sources": {
+  "buyerWorkbook": "Bakery request vs App - ตรวจสอบข้อมูล (1).xlsx",
+  "buyerWorkbookSha256": "5af39e8203443320813db9ab3945c75500d28dbb14b723e923cd08082a8d7b79",
+  "priceList": "docs/price_import_2026-11.json"
+ },
+ "rules": "class from the Code 206 price list (68/78), never the Buyer's Sub Class column (other taxonomy); conversions as filled by the Buyer; typos ลััง->ลัง, ชน->ชิ้น normalised",
+ "items": [
+  {
+   "code": "200667",
+   "name": "กระดาษรองอบ 40*60 ซม.",
+   "cls": "68",
+   "packtype": "ลัง",
+   "pack_size": 1,
+   "sub_uom": "ลัง",
+   "price": 1350.0,
+   "buyerSubClassIgnored": 48,
+   "fixed": []
+  },
+  {
+   "code": "200669",
+   "name": "กระดาษลอกลาย 30\"*20\"",
+   "cls": "68",
+   "packtype": "ลัง",
+   "pack_size": 1,
+   "sub_uom": "ลัง",
+   "price": 930.0,
+   "buyerSubClassIgnored": 48,
+   "fixed": [
+    "sub_uom: ลััง->ลัง"
+   ]
+  },
+  {
+   "code": "154796",
+   "name": "ถุงบีบซีลอัลตร้า18นิ้ว สีฟ้า",
+   "cls": "68",
+   "packtype": "ลัง",
+   "pack_size": 1,
+   "sub_uom": "ลัง",
+   "price": 2500.0,
+   "buyerSubClassIgnored": 48,
+   "fixed": []
+  },
+  {
+   "code": "370995",
+   "name": "RM_ขนมเปี๊ยะไส้ถั่วหวาน40กx90ชนx1",
+   "cls": "78",
+   "packtype": "ลัง",
+   "pack_size": 90,
+   "sub_uom": "ชิ้น",
+   "price": 360.0,
+   "buyerSubClassIgnored": 20,
+   "fixed": []
+  },
+  {
+   "code": "127347",
+   "name": "RM_กล่องโดนัท 300 ชิ้น X 1",
+   "cls": "78",
+   "packtype": "ลัง",
+   "pack_size": 300,
+   "sub_uom": "ชิ้น",
+   "price": 1308.0,
+   "buyerSubClassIgnored": 18,
+   "fixed": []
+  },
+  {
+   "code": "933177",
+   "name": "ขนมปังธัญพืช 300 ก.X30ช.X1",
+   "cls": "68",
+   "packtype": "ลัง",
+   "pack_size": 30,
+   "sub_uom": "ชิ้น",
+   "price": 960.0,
+   "buyerSubClassIgnored": 46,
+   "fixed": [
+    "sub_uom: ชน->ชิ้น"
+   ]
+  },
+  {
+   "code": "653692",
+   "name": "RM_บาสก์ชีสเค้ก 500ก.x6ชิ้นx1",
+   "cls": "68",
+   "packtype": "ลัง",
+   "pack_size": 6,
+   "sub_uom": "ชิ้น",
+   "price": 1200.0,
+   "buyerSubClassIgnored": 46,
+   "fixed": []
+  },
+  {
+   "code": "311976",
+   "name": "RM_ขนมเปี๊ยะไส้ถั่วเค็ม40กx90ชนx1",
+   "cls": "78",
+   "packtype": "ลัง",
+   "pack_size": 90,
+   "sub_uom": "ชิ้น",
+   "price": 360.0,
+   "buyerSubClassIgnored": 20,
+   "fixed": []
+  },
+  {
+   "code": "396796",
+   "name": "RM_แป้งพิซซ่าผสมนม180ก.x27ถุงx1",
+   "cls": "78",
+   "packtype": "ลัง",
+   "pack_size": 27,
+   "sub_uom": "ถุง",
+   "price": 621.0,
+   "buyerSubClassIgnored": 17,
+   "fixed": []
+  },
+  {
+   "code": "727409",
+   "name": "RM_ซอสมะเขือเทศแช่แข็ง2กก.x6ถุงx1",
+   "cls": "78",
+   "packtype": "ลัง",
+   "pack_size": 6,
+   "sub_uom": "ถุง",
+   "price": 1050.0,
+   "buyerSubClassIgnored": 17,
+   "fixed": []
+  },
+  {
+   "code": "985078",
+   "name": "RM_สับปะรดกระป๋อง565ก.x24กปx1",
+   "cls": "78",
+   "packtype": "ลัง",
+   "pack_size": 24,
+   "sub_uom": "กระปุก",
+   "price": 1304.64,
+   "buyerSubClassIgnored": 21,
+   "fixed": []
+  },
+  {
+   "code": "936299",
+   "name": "RM_กล่องGOPIZZA9นิ้ว 81 ชิ้น x 1",
+   "cls": "78",
+   "packtype": "ลัง",
+   "pack_size": 81,
+   "sub_uom": "ชิ้น",
+   "price": 800.28,
+   "buyerSubClassIgnored": 18,
+   "fixed": []
+  },
+  {
+   "code": "255521",
+   "name": "RM_ไส้คัสตาร์ดมะพร้าวเส้น1กกx5ถx1",
+   "cls": "68",
+   "packtype": "ลัง",
+   "pack_size": 5,
+   "sub_uom": "ถุง",
+   "price": 1650.0,
+   "buyerSubClassIgnored": 43,
+   "fixed": []
+  },
+  {
+   "code": "601880",
+   "name": "RM_สติ๊กเกอร์เค้กช็อกมะพร้าว300ชน",
+   "cls": "78",
+   "packtype": "ลัง",
+   "pack_size": 300,
+   "sub_uom": "ชิ้น",
+   "price": 360.0,
+   "buyerSubClassIgnored": 18,
+   "fixed": []
+  },
+  {
+   "code": "246229",
+   "name": "RM_โดขนมปังหวานแช่แข็ง20กx300ชนx1",
+   "cls": "68",
+   "packtype": "ลัง",
+   "pack_size": 300,
+   "sub_uom": "ชิ้น",
+   "price": 585.0,
+   "buyerSubClassIgnored": 46,
+   "fixed": []
+  },
+  {
+   "code": "634739",
+   "name": "RM_ไส้สังขยาใบเตย 1 กก.x5ถุงx1",
+   "cls": "68",
+   "packtype": "ลัง",
+   "pack_size": 5,
+   "sub_uom": "ถุง",
+   "price": 500.0,
+   "buyerSubClassIgnored": 43,
+   "fixed": []
+  },
+  {
+   "code": "678959",
+   "name": "RM_ไส้มะพร้าวเส้นแช่แข็ง1กกx5ถx1",
+   "cls": "68",
+   "packtype": "ลัง",
+   "pack_size": 5,
+   "sub_uom": "ถุง",
+   "price": 925.0,
+   "buyerSubClassIgnored": 43,
+   "fixed": []
+  },
+  {
+   "code": "179821",
+   "name": "RM_สติ๊กเกอร์ปังสังขยามะพร้าว300ช",
+   "cls": "78",
+   "packtype": "ลัง",
+   "pack_size": 300,
+   "sub_uom": "ชิ้น",
+   "price": 360.0,
+   "buyerSubClassIgnored": 18,
+   "fixed": []
+  }
+ ]
+}
