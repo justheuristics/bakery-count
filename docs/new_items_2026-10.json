@@ -8,7 +8,7 @@
   "buyerWorkbookSha256": "5af39e8203443320813db9ab3945c75500d28dbb14b723e923cd08082a8d7b79",
   "priceList": "docs/price_import_2026-11.json"
  },
- "rules": "class from the Code 206 price list (68/78), never the Buyer's Sub Class column (other taxonomy); conversions as filled by the Buyer; typos ลััง->ลัง, ชน->ชิ้น normalised",
+ "rules": "class from the Code 206 price list (68/78), never the Buyer's Sub Class column (other taxonomy); conversions as filled by the Buyer; typos ลััง->ลัง, ชน->ชิ้น normalised; items with their own priceSource 'buyer-review-2026-11' are priced from the Buyer's Cost column (not on the Code 206 list), recorded as EX VAT per owner (2 Nov 2026)",
  "items": [
   {
    "code": "200667",
@@ -211,6 +211,42 @@
    "price": 360.0,
    "buyerSubClassIgnored": 18,
    "fixed": []
+  },
+  {
+   "code": "922253",
+   "name": "ถาด6ช่องใหญ่ PET 100 PCS X 1",
+   "cls": "68",
+   "packtype": "ลัง",
+   "pack_size": 100,
+   "sub_uom": "ชิ้น",
+   "price": 320.0,
+   "priceSource": "buyer-review-2026-11",
+   "classSource": "stores' request form (RM Packaging) + live trays are 68",
+   "buyerSubClassIgnored": 48
+  },
+  {
+   "code": "232183",
+   "name": "มินิโดนัทเคลือบ15กX35ชิ้น",
+   "cls": "68",
+   "packtype": "ลัง",
+   "pack_size": 35,
+   "sub_uom": "ชิ้น",
+   "price": 140.0,
+   "priceSource": "buyer-review-2026-11",
+   "classSource": "stores' request form (RM FROZEN Dough) + live frozen donuts are 68",
+   "buyerSubClassIgnored": 46
+  },
+  {
+   "code": "134544",
+   "name": "เอโร่ มายองเนส 1 กก.",
+   "cls": "306",
+   "packtype": "แพ็ค",
+   "pack_size": 1,
+   "sub_uom": "แพ็ค",
+   "price": 59.0,
+   "priceSource": "buyer-review-2026-11",
+   "classSource": "data.json + every live mayonnaise item is 306",
+   "buyerSubClassIgnored": 20
   }
  ]
 }

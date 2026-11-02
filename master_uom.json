@@ -2326,5 +2326,23 @@
     "pack_size": 300,
     "packtype": "ลัง",
     "sub_uom": "ชิ้น"
+  },
+  "922253": {
+    "name_fbk3": "ถาด6ช่องใหญ่ PET 100 PCS X 1",
+    "pack_size": 100,
+    "packtype": "ลัง",
+    "sub_uom": "ชิ้น"
+  },
+  "232183": {
+    "name_fbk3": "มินิโดนัทเคลือบ15กX35ชิ้น",
+    "pack_size": 35,
+    "packtype": "ลัง",
+    "sub_uom": "ชิ้น"
+  },
+  "134544": {
+    "name_fbk3": "เอโร่ มายองเนส 1 กก.",
+    "pack_size": 1,
+    "packtype": "แพ็ค",
+    "sub_uom": "แพ็ค"
   }
 }

@@ -488,9 +488,10 @@ Extractor: reproduces September's data and refuses a wrong-month zip. Nothing in
   `priceSource:'code-206-2026-11'`. Class comes from the price list (68/78) — **never** the Buyer's "Sub Class" column,
   which is the other numbering system. Conversions as the Buyer filled them (typos ลััง→ลัง, ชน→ชิ้น). The action refuses
   unless every item's `master_uom.json` entry is already loaded and identical, so `master_uom.json` must be deployed first.
-- **Waiting on the Buyer** (not added): 922253, 232183 (not on the price list — VAT basis of the Buyer's cost unknown) and six
-  store-shelf items 229903, 229905, 925727, 280692, 134544, 106962 (no price-list price, VAT basis unknown, real Class unknown
-  except 134544 = 306 in `data.json`). 13 rows the Buyer left blank are out, incl. three invalid 11-digit codes. The Buyer did
+- **Priced from the Buyer's Cost column** (not on the Code 206 list), recorded as EX VAT per the owner (2 Nov 2026),
+  `priceSource:'buyer-review-2026-11'`: 922253 (class 68), 232183 (68), 134544 (306 — every live mayonnaise item is 306).
+- **Waiting on the Buyer** (not added): store-shelf items 229903, 229905, 925727, 280692, 106962 — no real Class anywhere
+  (the Buyer's "Sub Class" numbers are the other numbering system). 13 rows the Buyer left blank are out, incl. three invalid 11-digit codes. The Buyer did
   not answer the "mismatch" sheet (45 live items) — the app is unchanged for those.
 - The app has no per-store items: every store sees the new items on its October count, not just store 65.
 

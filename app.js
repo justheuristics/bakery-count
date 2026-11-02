@@ -3731,13 +3731,13 @@ async function showNewItemsModal(ym){
     <h3>➕ เพิ่มสินค้าใหม่เข้ารายการสินค้า — เริ่มนับเดือน ${esc(ymToFull(ym))}</h3>
     <p style="color:var(--txt2);margin-top:8px;font-size:12.5px;line-height:1.7">
       ${esc(doc.purpose || '')}<br>
-      ราคา ${esc(doc.basis)} · priceEffectiveFrom ${esc(doc.effectiveFrom)} · priceSource ${esc(doc.priceSource)} ·
+      ราคา ${esc(doc.basis)} · priceEffectiveFrom ${esc(doc.effectiveFrom)} · priceSource ${esc(doc.priceSource)} (รายการที่ระบุแหล่งราคาเองใช้ของตัวเอง) ·
       สินค้าใหม่จะแสดงให้<b>ทุกสาขา</b>นับทันที
     </p>
     ${p.errors.length ? piBox('var(--red-bg)', 'var(--red)', '❌ ตรวจสอบไม่ผ่าน — จะไม่เขียนอะไรเลย (all-or-nothing)') :
       (p.toAdd.length ? piBox('var(--green-bg)', 'var(--green)', `✅ ตรวจสอบผ่าน — พร้อมเพิ่ม ${p.toAdd.length} รายการ`) : piBox('var(--surface2)', 'var(--txt2)', 'ไม่มีอะไรต้องเพิ่ม — ทุกรายการมีอยู่แล้ว'))}
-    ${p.toAdd.length ? piTbl('<th>#</th><th>รหัส</th><th>ชื่อ</th><th>Class</th><th>หน่วย / ขนาดบรรจุ / หน่วยย่อย</th><th class="tr">ราคา (EX)</th>',
-      p.toAdd.map((it, i) => `<tr><td class="num">${maxNo + i + 1}</td><td class="code-cell">${esc(it.code)}</td><td>${esc(it.name)}</td><td>${esc(it.cls)}</td><td>${esc(it.packtype)} / ${fNum(it.pack_size,0)} / ${esc(it.sub_uom)}</td><td class="tr num">${fNum(it.price,2)}</td></tr>`).join(''), 300) : ''}
+    ${p.toAdd.length ? piTbl('<th>#</th><th>รหัส</th><th>ชื่อ</th><th>Class</th><th>หน่วย / ขนาดบรรจุ / หน่วยย่อย</th><th class="tr">ราคา (EX)</th><th>แหล่งราคา</th>',
+      p.toAdd.map((it, i) => `<tr><td class="num">${maxNo + i + 1}</td><td class="code-cell">${esc(it.code)}</td><td>${esc(it.name)}</td><td>${esc(it.cls)}</td><td>${esc(it.packtype)} / ${fNum(it.pack_size,0)} / ${esc(it.sub_uom)}</td><td class="tr num">${fNum(it.price,2)}</td><td>${esc(it.priceSource || doc.priceSource)}</td></tr>`).join(''), 300) : ''}
     ${p.alreadyLive.length ? `<div style="margin-top:8px;font-size:12px;color:var(--txt3)">มีอยู่แล้ว (ข้าม): ${p.alreadyLive.map(it => esc(it.code)).join(', ')}</div>` : ''}
     ${p.errors.length ? piSec('var(--red)', `❌ ${p.errors.length} รายการตรวจสอบไม่ผ่าน`, piTbl('<th>รหัส</th><th>ชื่อ</th><th>ปัญหา</th>', p.errors.map(e => `<tr><td class="code-cell">${esc(e.code)}</td><td>${esc(e.name || '')}</td><td style="color:var(--red)">${esc(e.issue)}</td></tr>`).join(''))) : ''}
     <div class="modal-actions">
@@ -3759,7 +3759,7 @@ async function doAddNewItems(){
   const added = p.toAdd.map((it, i) => ({
     no: maxNo + i + 1, class: String(it.cls), code: it.code, name: it.name,
     price: Number(it.price), priceUom: it.packtype, priceBasis: 'EX_VAT', priceStatus: null,
-    priceEffectiveFrom: doc.effectiveFrom, priceSource: doc.priceSource
+    priceEffectiveFrom: doc.effectiveFrom, priceSource: it.priceSource || doc.priceSource   // per-item source wins (e.g. priced from the Buyer's review, not the price list)
   }));
   closeModal();
   await saveMasterItems([...ITEMS_DATA, ...added], `เพิ่มสินค้าใหม่แล้ว ${added.length} รายการ ✅`);
