@@ -247,6 +247,66 @@
    "priceSource": "buyer-review-2026-11",
    "classSource": "data.json + every live mayonnaise item is 306",
    "buyerSubClassIgnored": 20
+  },
+  {
+   "code": "106962",
+   "name": "ปรุงทิพย์ เกลือ 5 กก.X1",
+   "cls": "683",
+   "packtype": "แพ็ค",
+   "pack_size": 1,
+   "sub_uom": "แพ็ค",
+   "price": 45.833,
+   "priceSource": "buyer-review-2026-11",
+   "classSource": "best guess (owner-approved): same-brand 1kg salt 106971 and live 5kg salt 668317 are 683",
+   "buyerSubClassIgnored": 11
+  },
+  {
+   "code": "925727",
+   "name": "เอโร่ มอสซาเรลล่าขูดเส้น500ก.",
+   "cls": "753",
+   "packtype": "แพ็ค",
+   "pack_size": 1,
+   "sub_uom": "แพ็ค",
+   "price": 123.83,
+   "priceSource": "buyer-review-2026-11",
+   "classSource": "best guess (owner-approved): live 1kg version 164221 is 753",
+   "buyerSubClassIgnored": 50
+  },
+  {
+   "code": "229903",
+   "name": "BMP เบคอนชิ้นเล็ก 500 กรัม",
+   "cls": "68",
+   "packtype": "แพ็ค",
+   "pack_size": 1,
+   "sub_uom": "แพ็ค",
+   "price": 117.5,
+   "priceSource": "buyer-review-2026-11",
+   "classSource": "PLACEHOLDER (owner-approved) - confirm real Class with Buyer",
+   "buyerSubClassIgnored": 40
+  },
+  {
+   "code": "229905",
+   "name": "BMP แฮมชิ้นเล็ก 500 กรัม",
+   "cls": "68",
+   "packtype": "แพ็ค",
+   "pack_size": 1,
+   "sub_uom": "แพ็ค",
+   "price": 87.5,
+   "priceSource": "buyer-review-2026-11",
+   "classSource": "PLACEHOLDER (owner-approved) - confirm real Class with Buyer",
+   "buyerSubClassIgnored": 20
+  },
+  {
+   "code": "280692",
+   "name": "บุชเชอร์ ไส้กรอกรมควัน 400 ก. X 1",
+   "cls": "68",
+   "packtype": "แพ็ค",
+   "pack_size": 1,
+   "sub_uom": "แพ็ค",
+   "price": 107.49,
+   "priceSource": "buyer-review-2026-11",
+   "classSource": "PLACEHOLDER (owner-approved) - confirm real Class with Buyer; shelf chilled sausages are 26",
+   "buyerSubClassIgnored": 25
   }
  ]
 }

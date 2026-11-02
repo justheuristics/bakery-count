@@ -490,8 +490,12 @@ Extractor: reproduces September's data and refuses a wrong-month zip. Nothing in
   unless every item's `master_uom.json` entry is already loaded and identical, so `master_uom.json` must be deployed first.
 - **Priced from the Buyer's Cost column** (not on the Code 206 list), recorded as EX VAT per the owner (2 Nov 2026),
   `priceSource:'buyer-review-2026-11'`: 922253 (class 68), 232183 (68), 134544 (306 — every live mayonnaise item is 306).
-- **Waiting on the Buyer** (not added): store-shelf items 229903, 229905, 925727, 280692, 106962 — no real Class anywhere
-  (the Buyer's "Sub Class" numbers are the other numbering system). 13 rows the Buyer left blank are out, incl. three invalid 11-digit codes. The Buyer did
+- **Store-shelf items, added with a best-guess Class (owner-approved, 2 Nov 2026)** at the Buyer's EX VAT cost, counted per
+  แพ็ค: 106962 → 683 (same-brand salt is 683), 925727 → 753 (live 1 kg version is 753). **229903 เบคอน, 229905 แฮม, 280692
+  ไส้กรอก are on Class 68 as a PLACEHOLDER** — confirm the real Class with the Buyer and fix via ✏️ แก้ไข (class is not stored on
+  entries, so the fix is one field and re-categorises every month). `classSource` in `docs/new_items_2026-10.json` records why.
+- **Possible past contamination (not fixed, not audited):** some live items carry classes 10/45/46/48 (e.g. 224352, 933179,
+  911978, several stickers) — numbers from the Buyer's "Sub Class" system, not the app's. 13 rows the Buyer left blank are out, incl. three invalid 11-digit codes. The Buyer did
   not answer the "mismatch" sheet (45 live items) — the app is unchanged for those.
 - The app has no per-store items: every store sees the new items on its October count, not just store 65.
 
